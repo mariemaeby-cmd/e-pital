@@ -23,7 +23,7 @@
       <input 
         id="search"
         type="text" 
-        placeholder="Search hospital, zone, state, specialty..." 
+        placeholder="Search hospital, district, state, specialty..." 
         class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
         oninput="filterData()"
       />
@@ -57,97 +57,447 @@
     <!-- Live Counter -->
     <div id="result-count" class="text-xs text-slate-400 px-1 font-medium"></div>
 
-    <!-- Facility Cards -->
-    <div id="facility-list" class="space-y-3">
-      <div class="text-center py-8 text-slate-500 text-sm">Loading directory...</div>
-    </div>
+    <!-- Facility Cards Container -->
+    <div id="facility-list" class="space-y-3"></div>
 
   </div>
 
   <script>
-    let facilities = [];
-    let currentTier = 'ALL';
-    let currentZone = 'ALL';
-
-    fetch('data/facilities.json')
-      .then(res => res.json())
-      .then(data => {
-        facilities = data;
-        filterData();
-      })
-      .catch(() => {
-        document.getElementById('facility-list').innerHTML = `
-          <div class="text-center py-8 text-red-400 text-sm">Error loading facilities. Ensure data/facilities.json exists.</div>
-        `;
-      });
-
-    function setTier(tier) {
-      currentTier = tier;
-      document.querySelectorAll('.tier-tab').forEach(tab => {
-        tab.className = 'tier-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium';
-      });
-      document.getElementById(`tab-${tier}`).className = 'tier-tab bg-blue-600 text-white px-3 py-1.5 rounded-lg whitespace-nowrap font-medium';
-      filterData();
-    }
-
-    function setZone(zone) {
-      currentZone = zone;
-      document.querySelectorAll('.zone-tab').forEach(tab => {
-        tab.className = 'zone-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium';
-      });
-      document.getElementById(`zone-${zone}`).className = 'zone-tab bg-blue-600 text-white px-3 py-1.5 rounded-lg whitespace-nowrap font-medium';
-      filterData();
-    }
-
-    function filterData() {
-      const q = document.getElementById('search').value.toLowerCase();
-      const list = document.getElementById('facility-list');
-      list.innerHTML = '';
-
-      const filtered = facilities.filter(f => {
-        const matchesTier = (currentTier === 'ALL' || f.tier === currentTier);
-        const matchesZone = (currentZone === 'ALL' || f.zone === currentZone);
-        const matchesQuery = (f.name && f.name.toLowerCase().includes(q)) || 
-                             (f.district && f.district.toLowerCase().includes(q)) || 
-                             (f.state && f.state.toLowerCase().includes(q)) ||
-                             (f.zone && f.zone.toLowerCase().includes(q)) ||
-                             (f.specialties && f.specialties.some(s => s.toLowerCase().includes(q)));
-        return matchesTier && matchesZone && matchesQuery;
-      });
-
-      document.getElementById('result-count').innerText = `Showing ${filtered.length} facilities`;
-
-      if (filtered.length === 0) {
-        list.innerHTML = `<div class="text-center py-8 text-slate-500 text-sm">No facilities found for this zone or search query.</div>`;
-        return;
-      }
-
-      filtered.forEach(f => {
-        const card = document.createElement('div');
-        card.className = "bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 shadow-sm";
-        card.innerHTML = `
-          <div class="flex justify-between items-start gap-2">
-            <div>
-              <h3 class="text-sm font-semibold text-slate-100">${f.name}</h3>
-              <span class="text-[10px] text-indigo-400 font-medium">${f.zone} Zone • ${f.state}</span>
-            </div>
-            <span class="text-[10px] bg-slate-800 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-md whitespace-nowrap">${f.tierLabel}</span>
-          </div>
-          <p class="text-xs text-slate-400">${f.address}</p>
-          <div class="flex flex-wrap gap-1 pt-1">
-            ${(f.specialties || []).map(s => `<span class="text-[10px] bg-slate-800/90 text-slate-300 px-1.5 py-0.5 rounded">${s}</span>`).join('')}
-          </div>
-          <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
-            <a href="tel:${f.emergency}" class="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-lg font-medium">
-              📞 ${f.emergency}
-            </a>
-            <span class="text-[11px] text-slate-400">${f.district}</span>
-          </div>
-        `;
-        list.appendChild(card);
-      });
-    }
-  </script>
-</body>
-</html>
-
+    const facilities = [
+      {
+        name: "ESIC Medical College & Hospital Kalaburagi",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "South",
+        state: "Karnataka",
+        district: "Kalaburagi",
+        emergency: "08472-265555",
+        address: "Sedam Road, Kalaburagi - 585106",
+        specialties: ["Emergency 24x7", "ICU", "Cardiology", "Nephrology", "General Surgery"]
+      },
+      {
+        name: "ESIC Model Hospital Rajajinagar",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "South",
+        state: "Karnataka",
+        district: "Bengaluru",
+        emergency: "080-23325130",
+        address: "Rajajinagar 2nd Block, Bengaluru - 560010",
+        specialties: ["Dialysis", "Burn Unit", "Pediatrics", "Cardiology", "Oncology"]
+      },
+      {
+        name: "ESIC Hospital Peenya",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "South",
+        state: "Karnataka",
+        district: "Bengaluru",
+        emergency: "080-28394421",
+        address: "Plot No. 11, Peenya Industrial Area Phase 1 - 560058",
+        specialties: ["General Medicine", "Orthopedics", "Trauma", "Casualty"]
+      },
+      {
+        name: "ESIS Dispensary Bommasandra",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "South",
+        state: "Karnataka",
+        district: "Bengaluru",
+        emergency: "080-27832210",
+        address: "Bommasandra Industrial Area, Hosur Road - 560099",
+        specialties: ["OPD", "Pharmacy", "Stat Referral", "Maternal Care"]
+      },
+      {
+        name: "ESIS Dispensary Whitefield",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "South",
+        state: "Karnataka",
+        district: "Bengaluru",
+        emergency: "080-28452300",
+        address: "Near ITPL, Whitefield Main Road - 560066",
+        specialties: ["OPD", "Pharmacy", "Minor OT"]
+      },
+      {
+        name: "Apollo Hospital Bannerghatta Road (SST Tie-Up)",
+        tier: "TIER_4",
+        tierLabel: "Tier 4 • Empanelled SST",
+        zone: "South",
+        state: "Karnataka",
+        district: "Bengaluru",
+        emergency: "1066",
+        address: "154/11, Opp IIMB, Bannerghatta Road - 560076",
+        specialties: ["Cashless SST", "Cardiac Bypass (CABG)", "Neurosurgery", "Organ Transplant"]
+      },
+      {
+        name: "Narayana Institute of Cardiac Sciences (SST Tie-Up)",
+        tier: "TIER_4",
+        tierLabel: "Tier 4 • Empanelled SST",
+        zone: "South",
+        state: "Karnataka",
+        district: "Bengaluru",
+        emergency: "080-71222222",
+        address: "258/A, Bommasandra Industrial Area, Anekal Taluk - 560099",
+        specialties: ["Cashless SST", "Interventional Cardiology", "Cardiothoracic Surgery", "Pediatric Cardiology"]
+      },
+      {
+        name: "ESIC Medical College & Hospital Sanathnagar",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "South",
+        state: "Telangana",
+        district: "Hyderabad",
+        emergency: "040-23701096",
+        address: "Sanathnagar, Hyderabad - 500038",
+        specialties: ["Super Specialty Emergency", "Cardiology", "Medical Oncology", "Neurology", "Gastroenterology"]
+      },
+      {
+        name: "ESIS Hospital Nacharam",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • State ESIS",
+        zone: "South",
+        state: "Telangana",
+        district: "Medchal-Malkajgiri",
+        emergency: "040-27153245",
+        address: "Nacharam Industrial Area, Hyderabad - 500076",
+        specialties: ["Casualty", "General Medicine", "Orthopedics", "Labor & Delivery"]
+      },
+      {
+        name: "ESIS Dispensary Kattedan",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "South",
+        state: "Telangana",
+        district: "Rangareddy",
+        emergency: "040-24361020",
+        address: "Industrial Area, Kattedan - 500077",
+        specialties: ["OPD", "Pharmacy", "Preventive Care"]
+      },
+      {
+        name: "Yashoda Hospitals Secunderabad (SST Tie-Up)",
+        tier: "TIER_4",
+        tierLabel: "Tier 4 • Empanelled SST",
+        zone: "South",
+        state: "Telangana",
+        district: "Hyderabad",
+        emergency: "040-45674567",
+        address: "Alexander Road, Secunderabad - 500003",
+        specialties: ["Cashless SST", "Surgical Oncology", "Cardiology", "Liver Transplant"]
+      },
+      {
+        name: "ESIC Medical College & Hospital KK Nagar",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "South",
+        state: "Tamil Nadu",
+        district: "Chennai",
+        emergency: "044-24748959",
+        address: "Ashok Pillar Road, KK Nagar, Chennai - 600078",
+        specialties: ["Emergency 24x7", "Polytrauma", "Dialysis", "Cardiothoracic Surgery", "NICU"]
+      },
+      {
+        name: "ESIS Hospital Ayanavaram",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • State ESIS",
+        zone: "South",
+        state: "Tamil Nadu",
+        district: "Chennai",
+        emergency: "044-26741234",
+        address: "Konnor High Road, Ayanavaram, Chennai - 600023",
+        specialties: ["General Surgery", "Obstetrics & Gynaecology", "General OPD"]
+      },
+      {
+        name: "ESIS Dispensary Ambattur",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "South",
+        state: "Tamil Nadu",
+        district: "Chennai",
+        emergency: "044-26251209",
+        address: "Ambattur Industrial Estate, Chennai - 600058",
+        specialties: ["Primary Care", "Diagnostic Tests", "Stat Referral"]
+      },
+      {
+        name: "MIOT International (SST Tie-Up)",
+        tier: "TIER_4",
+        tierLabel: "Tier 4 • Empanelled SST",
+        zone: "South",
+        state: "Tamil Nadu",
+        district: "Chennai",
+        emergency: "044-42002288",
+        address: "4/112, Mount Poonamallee Road, Manapakkam - 600089",
+        specialties: ["Cashless SST", "Joint Replacement", "Spine Surgery", "Vascular Surgery", "Oncology"]
+      },
+      {
+        name: "ESIC Medical College & Hospital Parippally",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "South",
+        state: "Kerala",
+        district: "Kollam",
+        emergency: "0474-2575070",
+        address: "Parippally, Kollam - 691574",
+        specialties: ["Super Specialty Emergency", "Trauma", "ICU", "Neurology", "Cardiology"]
+      },
+      {
+        name: "ESIS Hospital Ezhukone",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • State ESIS",
+        zone: "South",
+        state: "Kerala",
+        district: "Kollam",
+        emergency: "0474-2522454",
+        address: "Ezhukone, Kollam - 691505",
+        specialties: ["General Medicine", "General Surgery", "Pediatrics", "Casualty"]
+      },
+      {
+        name: "ESIS Dispensary Ernakulam",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "South",
+        state: "Kerala",
+        district: "Ernakulam",
+        emergency: "0484-2391030",
+        address: "Banerji Road, Ernakulam, Kochi - 682018",
+        specialties: ["OPD", "Pharmacy", "Stat Referral"]
+      },
+      {
+        name: "ESIC PGIMSR & Model Hospital Basaidarapur",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "North",
+        state: "Delhi",
+        district: "West Delhi",
+        emergency: "011-25970800",
+        address: "Ring Road, Basaidarapur, New Delhi - 110015",
+        specialties: ["Super Specialty Blocks", "Trauma 24x7", "Dialysis", "Neurology", "Plastic Surgery"]
+      },
+      {
+        name: "ESIC Hospital Okhla",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "North",
+        state: "Delhi",
+        district: "South East Delhi",
+        emergency: "011-26814161",
+        address: "Sri Maa Anandmayee Marg, Okhla Phase 1 - 110020",
+        specialties: ["Emergency", "Orthopedics", "Pulmonology", "Radiology"]
+      },
+      {
+        name: "ESIS Dispensary Mayapuri",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "North",
+        state: "Delhi",
+        district: "West Delhi",
+        emergency: "011-28114532",
+        address: "Phase 2, Mayapuri Industrial Area - 110064",
+        specialties: ["Primary OPD", "Diagnostic Lab", "Referral Desk"]
+      },
+      {
+        name: "Max Super Speciality Hospital Saket (SST Tie-Up)",
+        tier: "TIER_4",
+        tierLabel: "Tier 4 • Empanelled SST",
+        zone: "North",
+        state: "Delhi",
+        district: "South Delhi",
+        emergency: "011-26515050",
+        address: "1, 2, Press Enclave Marg, Saket - 110017",
+        specialties: ["Cashless SST", "Oncology", "Bone Marrow Transplant", "Neurosurgery"]
+      },
+      {
+        name: "ESIC Medical College & Hospital Faridabad",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "North",
+        state: "Haryana",
+        district: "Faridabad",
+        emergency: "0129-2460102",
+        address: "NH-3, NIT Faridabad - 121001",
+        specialties: ["Advanced Cardiac Care", "Cath Lab", "ICU", "Neurosurgery", "Renal Transplant"]
+      },
+      {
+        name: "ESIS Dispensary Gurugram Sector 18",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "North",
+        state: "Haryana",
+        district: "Gurugram",
+        emergency: "0124-2340212",
+        address: "Electronic City, Sector 18, Gurugram - 122015",
+        specialties: ["OPD", "Pharmacy", "Stat Referral"]
+      },
+      {
+        name: "Medanta - The Medicity (SST Tie-Up)",
+        tier: "TIER_4",
+        tierLabel: "Tier 4 • Empanelled SST",
+        zone: "North",
+        state: "Haryana",
+        district: "Gurugram",
+        emergency: "0124-4141414",
+        address: "CH Bakhtawar Singh Road, Sector 38, Gurugram - 122001",
+        specialties: ["Cashless SST", "Heart Transplants", "Advanced Neurotrauma", "Surgical Oncology"]
+      },
+      {
+        name: "ESIC Model Hospital Sahibabad",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "North",
+        state: "Uttar Pradesh",
+        district: "Ghaziabad",
+        emergency: "0120-2630501",
+        address: "Site 4, Sahibabad Industrial Area, Ghaziabad - 201010",
+        specialties: ["Emergency 24x7", "Orthopedics", "General Surgery", "Pediatrics"]
+      },
+      {
+        name: "ESIS Dispensary Noida Sector 12",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "North",
+        state: "Uttar Pradesh",
+        district: "Gautam Buddha Nagar",
+        emergency: "0120-2534120",
+        address: "Sector 12, Noida - 201301",
+        specialties: ["Primary OPD", "Diagnostic Lab", "Referral"]
+      },
+      {
+        name: "ESIC Model Hospital Ludhiana",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "North",
+        state: "Punjab",
+        district: "Ludhiana",
+        emergency: "0161-2772450",
+        address: "Bharat Nagar Chowk, Ludhiana - 141001",
+        specialties: ["ICU", "Dialysis", "Cardiology", "Trauma Care"]
+      },
+      {
+        name: "ESIC PGIMSR & Hospital Andheri",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "West",
+        state: "Maharashtra",
+        district: "Mumbai Suburban",
+        emergency: "022-28367203",
+        address: "MIDC Central Road, Andheri East, Mumbai - 400093",
+        specialties: ["ICU", "NICU", "Emergency 24x7", "Cardiology", "Urology"]
+      },
+      {
+        name: "ESIS Hospital Worli",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • State ESIS",
+        zone: "West",
+        state: "Maharashtra",
+        district: "Mumbai City",
+        emergency: "022-24933142",
+        address: "Ganpatrao Kadam Marg, Lower Parel, Mumbai - 400013",
+        specialties: ["General Surgery", "Trauma Care", "Orthopedics", "General Medicine"]
+      },
+      {
+        name: "ESIS Hospital Mulund",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • State ESIS",
+        zone: "West",
+        state: "Maharashtra",
+        district: "Mumbai Suburban",
+        emergency: "022-25645555",
+        address: "LBS Marg, Mulund West, Mumbai - 400080",
+        specialties: ["Emergency", "Pediatrics", "Ophthalmology", "ENT"]
+      },
+      {
+        name: "ESIS Dispensary Thane West",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "West",
+        state: "Maharashtra",
+        district: "Thane",
+        emergency: "022-25421100",
+        address: "Wagle Estate, Road No. 16, Thane West - 400604",
+        specialties: ["OPD", "Pharmacy", "Stat Referrals"]
+      },
+      {
+        name: "Fortis Hospital Mulund (SST Tie-Up)",
+        tier: "TIER_4",
+        tierLabel: "Tier 4 • Empanelled SST",
+        zone: "West",
+        state: "Maharashtra",
+        district: "Mumbai Suburban",
+        emergency: "022-43654365",
+        address: "Mulund Goregaon Link Road, Mulund West - 400078",
+        specialties: ["Cashless SST", "Heart Transplants", "Advanced Oncology", "Nephrology"]
+      },
+      {
+        name: "ESIC Model Hospital Bapunagar",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "West",
+        state: "Gujarat",
+        district: "Ahmedabad",
+        emergency: "079-22742681",
+        address: "Near Hardaspur, Bapunagar, Ahmedabad - 380024",
+        specialties: ["Emergency 24x7", "Dialysis", "Cardiology", "Trauma Block"]
+      },
+      {
+        name: "ESIS Dispensary Naroda",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "West",
+        state: "Gujarat",
+        district: "Ahmedabad",
+        emergency: "079-22811400",
+        address: "Naroda GIDC Industrial Estate, Ahmedabad - 382330",
+        specialties: ["OPD", "Pharmacy", "Stat Referral"]
+      },
+      {
+        name: "ESIC Hospital Jaipur",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "West",
+        state: "Rajasthan",
+        district: "Jaipur",
+        emergency: "0141-2223400",
+        address: "Hawa Sadak, Sodala, Jaipur - 302006",
+        specialties: ["Casualty", "ICU", "Orthopedics", "Cardiology"]
+      },
+      {
+        name: "ESIS Dispensary Vishwakarma Jaipur",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "West",
+        state: "Rajasthan",
+        district: "Jaipur",
+        emergency: "0141-2331200",
+        address: "Road No. 1, VKIA, Jaipur - 302013",
+        specialties: ["OPD", "Pharmacy", "Minor OT"]
+      },
+      {
+        name: "ESIC PGIMSR & Medical College Joka",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • Central Apex",
+        zone: "East",
+        state: "West Bengal",
+        district: "Kolkata",
+        emergency: "033-24672799",
+        address: "Diamond Harbour Road, Joka, Kolkata - 700104",
+        specialties: ["Emergency 24x7", "Cardiology", "Nephrology", "Critical Care", "Neurology"]
+      },
+      {
+        name: "ESIS Hospital Manicktala",
+        tier: "TIER_3",
+        tierLabel: "Tier 3 • State ESIS",
+        zone: "East",
+        state: "West Bengal",
+        district: "Kolkata",
+        emergency: "033-23547890",
+        address: "5 Bagmari Road, Manicktala, Kolkata - 700054",
+        specialties: ["General Surgery", "Orthopedics", "Chest Medicine", "Casualty"]
+      },
+      {
+        name: "ESIS Dispensary Howrah",
+        tier: "TIER_1",
+        tierLabel: "Tier 1 • Primary Dispensary",
+        zone: "East",
+        state: "West Bengal",
+        district: "Howrah",
+        emergency: "033-2666
