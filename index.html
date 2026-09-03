@@ -1,31 +1,198 @@
-// --- EMERGENCY GEOLOCATION OVERRIDE (North Karnataka & Telangana Borders) ---
-const DISTRICT_GEO_MAP = {
-  "gulbarga": [17.3297, 76.8343],
-  "kalaburagi": [17.3297, 76.8343],
-  "wadi": [17.0483, 76.9934],
-  "shahabad": [17.1332, 76.9388],
-  "chittapur": [17.1186, 77.0864],
-  "bidar": [17.9104, 77.5199],
-  "raichur": [16.2120, 77.3439],
-  "yadgir": [16.7639, 77.1378],
-  "warangal": [17.9689, 79.5941],
-  "nizamabad": [18.6725, 78.0941],
-  "hyderabad": [17.3850, 78.4867],
-  "bengaluru": [12.9716, 77.5946],
-  "bangalore": [12.9716, 77.5946]
-};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>e-pital - National ESI Facility Locator</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    #map { height: 280px; width: 100%; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col font-sans">
 
-// Dynamically patch coordinates based on facility name, district, or address
-if (Array.isArray(facilities)) {
-  facilities.forEach(f => {
-    const text = `${f.name || ""} ${f.district || ""} ${f.address || ""}`.toLowerCase();
-    for (const [key, coords] of Object.entries(DISTRICT_GEO_MAP)) {
-      if (text.includes(key)) {
-        f.lat = coords[0] + (Math.random() - 0.5) * 0.01;
-        f.lng = coords[1] + (Math.random() - 0.5) * 0.01;
-        break;
+  <!-- Header -->
+  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center font-bold text-white">e</div>
+      <div>
+        <h1 class="font-bold text-base leading-tight">e-pital</h1>
+        <p class="text-xs text-slate-400">National ESI Facility Directory & Navigator</p>
+      </div>
+    </div>
+    <span class="text-xs bg-slate-800 text-emerald-400 px-2.5 py-1 rounded-full font-mono border border-slate-700" id="facility-count">Loading...</span>
+  </header>
+
+  <!-- Fixed Height Map Container -->
+  <div class="w-full bg-slate-200 border-b border-slate-300 relative shadow-inner">
+    <div id="map"></div>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="max-w-2xl w-full mx-auto p-4 space-y-3">
+    <div class="flex gap-2">
+      <input 
+        type="text" 
+        id="search-input" 
+        placeholder="Enter location, taluk, town, or PIN..." 
+        class="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+      />
+      <button 
+        id="search-btn" 
+        class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm">
+        Find
+      </button>
+      <button 
+        id="gps-btn" 
+        class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg flex items-center gap-1 shadow-sm">
+        📍 GPS
+      </button>
+    </div>
+    <div class="text-xs text-slate-500 flex justify-between px-1">
+      <span id="status-label">Showing nearest facilities</span>
+      <span id="anchor-label" class="font-medium text-slate-700"></span>
+    </div>
+
+    <!-- Facility Cards List -->
+    <div id="facility-list" class="space-y-3 pb-8"></div>
+  </div>
+
+  <script>
+    // 1. Discrete Facility Dataset
+    const facilities = [
+      { id: "KA-01", name: "ESIC Medical College & Hospital", type: "Tertiary", district: "Kalaburagi (Gulbarga)", state: "Karnataka", lat: 17.3197, lng: 76.8456 },
+      { id: "KA-02", name: "ESI Dispensary, Wadi", type: "Dispensary", district: "Kalaburagi", state: "Karnataka", lat: 17.0483, lng: 76.9934 },
+      { id: "KA-03", name: "ESI Dispensary, Shahabad", type: "Dispensary", district: "Kalaburagi", state: "Karnataka", lat: 17.1332, lng: 76.9388 },
+      { id: "KA-04", name: "ESI Dispensary, Chittapur", type: "Dispensary", district: "Kalaburagi", state: "Karnataka", lat: 17.1186, lng: 77.0864 },
+      { id: "TG-01", name: "ESI Hospital, Sanathnagar", type: "Secondary", district: "Hyderabad", state: "Telangana", lat: 17.4568, lng: 78.4439 },
+      { id: "TG-02", name: "ESI Dispensary, Warangal - Unit 1", type: "Dispensary", district: "Warangal", state: "Telangana", lat: 17.9689, lng: 79.5941 },
+      { id: "TG-03", name: "ESI Dispensary, Nizamabad - Unit 1", type: "Dispensary", district: "Nizamabad", state: "Telangana", lat: 18.6725, lng: 78.0941 }
+    ];
+
+    document.getElementById("facility-count").innerText = `${facilities.length} Facilities`;
+
+    // 2. Initialize Leaflet Map with Canvas Renderer
+    const map = L.map('map', { preferCanvas: true }).setView([17.0483, 76.9934], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let markers = [];
+    let userMarker = null;
+
+    function getHaversineDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * (Math.PI / 180);
+      const dLon = (lon2 - lon1) * (Math.PI / 180);
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    function renderFacilities(userLat, userLng, locationName = "") {
+      const listContainer = document.getElementById("facility-list");
+      listContainer.innerHTML = "";
+
+      // Sort by proximity
+      const sorted = facilities.map(f => ({
+        ...f,
+        distanceKm: getHaversineDistanceKm(userLat, userLng, f.lat, f.lng)
+      })).sort((a, b) => a.distanceKm - b.distanceKm);
+
+      // Clear existing markers
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+
+      sorted.forEach(item => {
+        // Add Marker
+        const marker = L.circleMarker([item.lat, item.lng], {
+          radius: 7,
+          fillColor: "#059669",
+          color: "#ffffff",
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.9
+        }).addTo(map).bindPopup(`<b>${item.name}</b><br>${item.district}, ${item.state}`);
+        markers.push(marker);
+
+        // Build Card
+        const card = document.createElement("div");
+        card.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-2";
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="font-bold text-slate-800 text-sm">${item.name}</h3>
+              <p class="text-xs text-slate-500">${item.district}, ${item.state}</p>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">${item.type}</span>
+              <p class="text-xs font-bold text-emerald-600 mt-1">${item.distanceKm.toFixed(1)} km</p>
+            </div>
+          </div>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lng}" target="_blank" 
+             class="w-full mt-2 block text-center py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold">
+            🚗 Navigate in Google Maps
+          </a>
+        `;
+        listContainer.appendChild(card);
+      });
+
+      if (locationName) {
+        document.getElementById("anchor-label").innerText = `📍 Nearest to: ${locationName}`;
       }
     }
-  });
-}
-// --------------------------------------------------------------------------
+
+    // Geocoding via Nominatim
+    async function searchLocation(query) {
+      if (!query.trim()) return;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          map.setView([lat, lng], 11);
+          
+          if (userMarker) map.removeLayer(userMarker);
+          userMarker = L.marker([lat, lng]).addTo(map).bindPopup(query).openPopup();
+
+          renderFacilities(lat, lng, query);
+        } else {
+          alert("Location not found. Please try a nearby town or PIN.");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Event Listeners
+    document.getElementById("search-btn").addEventListener("click", () => {
+      searchLocation(document.getElementById("search-input").value);
+    });
+
+    document.getElementById("gps-btn").addEventListener("click", () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const { latitude, longitude } = pos.coords;
+          map.setView([latitude, longitude], 12);
+          if (userMarker) map.removeLayer(userMarker);
+          userMarker = L.marker([latitude, longitude]).addTo(map).bindPopup("Your Location").openPopup();
+          renderFacilities(latitude, longitude, "Current GPS");
+        });
+      }
+    });
+
+    // Default load: Wadi Junction anchor
+    window.addEventListener("DOMContentLoaded", () => {
+      renderFacilities(17.0483, 76.9934, "Wadi Junction");
+      setTimeout(() => map.invalidateSize(), 300);
+    });
+  </script>
+</body>
+</html>
