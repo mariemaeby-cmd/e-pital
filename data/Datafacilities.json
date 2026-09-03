@@ -1,0 +1,273 @@
+[
+  {
+    "facility_id": "ESIC-KA-001",
+    "name": "ESIC Medical College & PGIMSR, Rajajinagar",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Rajajinagar 3rd Block",
+      "district": "Bengaluru Urban",
+      "state": "Karnataka",
+      "pincode": "560010"
+    },
+    "coordinates": { "lat": 12.9892, "lng": 77.5539 },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "SUPER_SPECIALTY"],
+    "contact": { "phone": "080-23321803", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-KA-002",
+    "name": "ESIC Medical College & Hospital, Kalaburagi",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Sedam Road",
+      "district": "Kalaburagi",
+      "state": "Karnataka",
+      "pincode": "585106"
+    },
+    "coordinates": { "lat": 17.3193, "lng": 76.8373 },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "DIALYSIS"],
+    "contact": { "phone": "08472-265546", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-KA-003",
+    "name": "ESIC Hospital, Peenya",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "HOSPITAL",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Peenya Industrial Area Phase 1",
+      "district": "Bengaluru Urban",
+      "state": "Karnataka",
+      "pincode": "560058"
+    },
+    "coordinates": { "lat": 13.0315, "lng": 77.5255 },
+    "tier": "SECONDARY",
+    "referral_required": true,
+    "services_available": ["OPD", "IPD", "EMERGENCY"],
+    "contact": { "phone": "080-28394042", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIS-KA-004",
+    "name": "ESI Dispensary, Shahabad",
+    "administration": "STATE_ESIS",
+    "facility_type": "DISPENSARY",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Station Road",
+      "district": "Kalaburagi",
+      "state": "Karnataka",
+      "pincode": "585228"
+    },
+    "coordinates": { "lat": 17.1332, "lng": 76.9388 },
+    "tier": "PRIMARY",
+    "referral_required": false,
+    "services_available": ["OPD", "PHARMACY"],
+    "contact": { "phone": "08474-204123", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIS-KA-005",
+    "name": "ESI Dispensary, Wadi",
+    "administration": "STATE_ESIS",
+    "facility_type": "DISPENSARY",
+    "zone": "SOUTH",
+    "address": {
+      "street": "ACC Colony",
+      "district": "Kalaburagi",
+      "state": "Karnataka",
+      "pincode": "585225"
+    },
+    "coordinates": { "lat": 17.0483, "lng": 76.9934 },
+    "tier": "PRIMARY",
+    "referral_required": false,
+    "services_available": ["OPD", "PHARMACY"],
+    "contact": { "phone": "08474-202450", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-TG-001",
+    "name": "ESIC Medical College & Hospital, Sanathnagar",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Sanathnagar",
+      "district": "Hyderabad",
+      "state": "Telangana",
+      "pincode": "500038"
+    },
+    "coordinates": { "lat": 17.4566, "lng": 78.4439 },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "SUPER_SPECIALTY"],
+    "contact": { "phone": "040-23701096", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-TG-002",
+    "name": "ESI Hospital, Nacharam",
+    "administration": "STATE_ESIS",
+    "facility_type": "HOSPITAL",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Nacharam Industrial Area",
+      "district": "Medchal-Malkajgiri",
+      "state": "Telangana",
+      "pincode": "500076"
+    },
+    "coordinates": { "lat": 17.4278, "lng": 78.5582 },
+    "tier": "SECONDARY",
+    "referral_required": true,
+    "services_available": ["OPD", "IPD", "EMERGENCY"],
+    "contact": { "phone": "040-27153123", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIS-TG-003",
+    "name": "ESI Dispensary, Mahbubnagar",
+    "administration": "STATE_ESIS",
+    "facility_type": "DISPENSARY",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Station Road",
+      "district": "Mahbubnagar",
+      "state": "Telangana",
+      "pincode": "509001"
+    },
+    "coordinates": { "lat": 16.7488, "lng": 78.0035 },
+    "tier": "PRIMARY",
+    "referral_required": false,
+    "services_available": ["OPD", "PHARMACY"],
+    "contact": { "phone": "08542-242301", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-MH-001",
+    "name": "ESIC Model Hospital & PGIMSR, Andheri",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "WEST",
+    "address": {
+      "street": "Central Road, MIDC, Andheri East",
+      "district": "Mumbai Suburban",
+      "state": "Maharashtra",
+      "pincode": "400093"
+    },
+    "coordinates": { "lat": 19.1206, "lng": 72.8687 },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU"],
+    "contact": { "phone": "022-28367203", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIS-MH-002",
+    "name": "ESIS Hospital Worli",
+    "administration": "STATE_ESIS",
+    "facility_type": "HOSPITAL",
+    "zone": "WEST",
+    "address": {
+      "street": "Ganpatrao Kadam Marg, Lower Parel",
+      "district": "Mumbai City",
+      "state": "Maharashtra",
+      "pincode": "400013"
+    },
+    "coordinates": { "lat": 18.9986, "lng": 72.8258 },
+    "tier": "SECONDARY",
+    "referral_required": true,
+    "services_available": ["OPD", "IPD", "EMERGENCY"],
+    "contact": { "phone": "022-24933142", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-DL-001",
+    "name": "ESIC Medical College & Hospital, Basaidarapur",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "NORTH",
+    "address": {
+      "street": "Ring Road, Basaidarapur",
+      "district": "West Delhi",
+      "state": "Delhi",
+      "pincode": "110015"
+    },
+    "coordinates": { "lat": 28.6572, "lng": 77.1264 },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "SUPER_SPECIALTY"],
+    "contact": { "phone": "011-25970222", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-DL-002",
+    "name": "ESIC Hospital, Okhla",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "HOSPITAL",
+    "zone": "NORTH",
+    "address": {
+      "street": "Sri Maa Anandmayee Marg, Okhla Phase I",
+      "district": "South East Delhi",
+      "state": "Delhi",
+      "pincode": "110020"
+    },
+    "coordinates": { "lat": 28.5369, "lng": 77.2721 },
+    "tier": "SECONDARY",
+    "referral_required": true,
+    "services_available": ["OPD", "IPD", "EMERGENCY"],
+    "contact": { "phone": "011-26814161", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-HR-001",
+    "name": "ESIC Medical College & Hospital, Faridabad",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "NORTH",
+    "address": {
+      "street": "NH-3, NIT Faridabad",
+      "district": "Faridabad",
+      "state": "Haryana",
+      "pincode": "121001"
+    },
+    "coordinates": { "lat": 28.3842, "lng": 77.2982 },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "SUPER_SPECIALTY"],
+    "contact": { "phone": "0129-2418035", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-TN-001",
+    "name": "ESIC Medical College & PGIMSR, KK Nagar",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Ashok Pillar Road, KK Nagar",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "600078"
+    },
+    "coordinates": { "lat": 13.0368, "lng": 80.1983 },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU"],
+    "contact": { "phone": "044-24748959", "emergency_helpline": "1800-11-2526" }
+  },
+  {
+    "facility_id": "ESIC-WB-001",
+    "name": "ESIC Medical College & Hospital, Joka",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "EAST",
+    "address": {
+      "street": "Diamond Harbour Road, Joka",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "pincode": "700104"
+    },
+    "coordinates": { "lat": 22.4518, "lng": 88.2988 },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU"],
+    "contact": { "phone": "033-24672799", "emergency_helpline": "1800-11-2526" }
+  }
+]
+
