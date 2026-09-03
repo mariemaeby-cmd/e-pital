@@ -1,7 +1,6 @@
 <script>
-// --- ROBUST GEOLOCATION PATCH ---
-window.addEventListener('DOMContentLoaded', () => {
-  const GEO_MAP = {
+(() => {
+  const DISTRICT_GEO_MAP = {
     "gulbarga": [17.3297, 76.8343],
     "kalaburagi": [17.3297, 76.8343],
     "wadi": [17.0483, 76.9934],
@@ -18,23 +17,24 @@ window.addEventListener('DOMContentLoaded', () => {
     "bangalore": [12.9716, 77.5946]
   };
 
-  function patchData(arr) {
-    if (!Array.isArray(arr)) return;
-    arr.forEach(f => {
-      const text = `${f.name || ''} ${f.district || ''} ${f.address || ''}`.toLowerCase();
-      for (const [key, coords] of Object.entries(GEO_MAP)) {
-        if (text.includes(key)) {
-          f.lat = coords[0] + (Math.random() - 0.5) * 0.01;
-          f.lng = coords[1] + (Math.random() - 0.5) * 0.01;
+  function applyCoordinates(list) {
+    if (!Array.isArray(list)) return;
+    list.forEach(item => {
+      const target = `${item.name || ''} ${item.district || ''} ${item.address || ''}`.toLowerCase();
+      for (const [key, coords] of Object.entries(DISTRICT_GEO_MAP)) {
+        if (target.includes(key)) {
+          item.lat = coords[0] + (Math.random() - 0.5) * 0.01;
+          item.lng = coords[1] + (Math.random() - 0.5) * 0.01;
           break;
         }
       }
     });
   }
 
-  // Attempt patching global facility arrays safely
-  if (typeof facilities !== 'undefined') patchData(facilities);
-  if (typeof allFacilities !== 'undefined') patchData(allFacilities);
-  if (typeof window.facilities !== 'undefined') patchData(window.facilities);
-});
+  window.addEventListener("DOMContentLoaded", () => {
+    if (typeof facilities !== "undefined") applyCoordinates(facilities);
+    if (typeof allFacilities !== "undefined") applyCoordinates(allFacilities);
+    if (typeof window.facilities !== "undefined") applyCoordinates(window.facilities);
+  });
+})();
 </script>
