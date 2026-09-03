@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>e-pital | National ESI Healthcare Locator</title>
   
-  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
@@ -31,22 +29,22 @@
         </div>
       </div>
       <div id="stats-counter" class="text-xs bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-emerald-400 font-mono">
-        Loading...
+        2,861 Facilities
       </div>
     </div>
   </header>
 
   <main class="max-w-4xl mx-auto p-3 space-y-3">
     
-    <!-- Map Container -->
+    <!-- Map Frame -->
     <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div id="map" class="rounded-xl"></div>
     </div>
 
-    <!-- Google Maps Style Floating Search Container -->
+    <!-- Search Bar -->
     <div class="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-md space-y-2 relative">
       <div class="relative flex items-center gap-2">
-        <div class="relative flex-1 flex items-center bg-slate-50 border border-slate-300 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 transition shadow-inner">
+        <div class="relative flex-1 flex items-center bg-slate-50 border border-slate-300 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 transition shadow-inner">
           <span class="pl-3 text-slate-400">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -56,7 +54,7 @@
             id="location-input"
             type="text"
             autocomplete="off"
-            placeholder="Search ANY village, taluk, town, or city (e.g., Wadi, Sedam, Gulbarga)..."
+            placeholder="Search village, taluk, town, or PIN..."
             class="w-full pl-2 pr-8 py-2.5 text-sm bg-transparent border-none focus:outline-none font-medium"
           />
           <button
@@ -67,18 +65,16 @@
           </button>
         </div>
 
-        <!-- Find Button with Magnifying Glass Icon -->
         <button
           id="search-btn"
           aria-label="Search"
-          class="p-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm shrink-0 transition flex items-center justify-center"
+          class="p-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl shadow-sm shrink-0 transition flex items-center justify-center"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
         </button>
 
-        <!-- GPS Button -->
         <button
           id="gps-btn"
           title="Use GPS"
@@ -87,7 +83,6 @@
           📍 GPS
         </button>
 
-        <!-- Photon Suggestions Dropdown -->
         <div id="suggestions-box" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-100"></div>
       </div>
 
@@ -97,32 +92,29 @@
       </div>
     </div>
 
-    <!-- Facility Cards List -->
+    <!-- Facility Cards -->
     <div id="facility-list" class="space-y-2.5"></div>
 
   </main>
 
   <script>
-    let map;
-    let markersLayer;
+    let map = null;
+    let markersLayer = null;
     let searchPin = null;
     let allFacilities = [];
     let currentAnchorPoint = null;
     let debounceTimer = null;
 
-    // Offline Geocache
     const LOCAL_GEO_CACHE = {
+      "gulbarga": { lat: 17.3297, lng: 76.8343, name: "Kalaburagi (Gulbarga)" },
+      "kalaburagi": { lat: 17.3297, lng: 76.8343, name: "Kalaburagi" },
       "wadi": { lat: 17.0483, lng: 76.9934, name: "Wadi Junction, Kalaburagi" },
-      "wadi junction": { lat: 17.0483, lng: 76.9934, name: "Wadi Junction, Kalaburagi" },
+      "wadi junction": { lat: 17.0483, lng: 76.9934, name: "Wadi Junction" },
       "shahabad": { lat: 17.1332, lng: 76.9388, name: "Shahabad, Kalaburagi" },
       "chittapur": { lat: 17.1189, lng: 77.0858, name: "Chittapur, Kalaburagi" },
       "sedam": { lat: 17.1772, lng: 77.2917, name: "Sedam, Kalaburagi" },
       "aland": { lat: 17.5658, lng: 76.5684, name: "Aland, Kalaburagi" },
       "afzalpur": { lat: 17.2023, lng: 76.3562, name: "Afzalpur, Kalaburagi" },
-      "chincholi": { lat: 17.4667, lng: 77.4333, name: "Chincholi, Kalaburagi" },
-      "jevargi": { lat: 17.0189, lng: 76.7711, name: "Jevargi, Kalaburagi" },
-      "kalaburagi": { lat: 17.3297, lng: 76.8343, name: "Kalaburagi" },
-      "gulbarga": { lat: 17.3297, lng: 76.8343, name: "Kalaburagi" },
       "bidar": { lat: 17.9104, lng: 77.5199, name: "Bidar" },
       "raichur": { lat: 16.2120, lng: 77.3439, name: "Raichur" },
       "yadgir": { lat: 16.7639, lng: 77.1378, name: "Yadgir" },
@@ -130,15 +122,10 @@
       "warangal": { lat: 17.9689, lng: 79.5941, name: "Warangal" },
       "nizamabad": { lat: 18.6725, lng: 78.0941, name: "Nizamabad" },
       "bengaluru": { lat: 12.9716, lng: 77.5946, name: "Bengaluru" },
-      "bangalore": { lat: 12.9716, lng: 77.5946, name: "Bengaluru" },
       "mumbai": { lat: 19.0760, lng: 72.8777, name: "Mumbai" },
-      "delhi": { lat: 28.7041, lng: 77.1025, name: "Delhi" },
-      "chennai": { lat: 13.0827, lng: 80.2707, name: "Chennai" },
-      "kolkata": { lat: 22.5726, lng: 88.3639, name: "Kolkata" },
-      "pune": { lat: 18.5204, lng: 73.8567, name: "Pune" }
+      "delhi": { lat: 28.7041, lng: 77.1025, name: "Delhi" }
     };
 
-    // Discrete Regional Coordinates
     const CITY_COORDS = {
       "Kalaburagi": [17.3297, 76.8343],
       "Wadi": [17.0483, 76.9934],
@@ -148,148 +135,24 @@
       "Bidar": [17.9104, 77.5199],
       "Raichur": [16.2120, 77.3439],
       "Yadgir": [16.7639, 77.1378],
-      "Koppal": [15.3456, 76.1548],
-      "Ballari": [15.1394, 76.9214],
-      "Hubballi": [15.3647, 75.1240],
-      "Belagavi": [15.8497, 74.4977],
       "Bengaluru": [12.9716, 77.5946],
-      "Mysuru": [12.2958, 76.6394],
-      "Mangaluru": [12.9141, 74.8560],
       "Hyderabad": [17.3850, 78.4867],
       "Warangal": [17.9689, 79.5941],
       "Nizamabad": [18.6725, 78.0941],
-      "Karimnagar": [18.4386, 79.1288],
-      "Mahbubnagar": [16.7488, 77.9856],
-      "Khammam": [17.2473, 80.1514],
       "Mumbai": [19.0760, 72.8777],
       "Pune": [18.5204, 73.8567],
-      "Nagpur": [21.1458, 79.0882],
-      "Thane": [19.2183, 72.9781],
-      "Nashik": [19.9975, 73.7898],
-      "Solapur": [17.6599, 75.9064],
-      "Kolhapur": [16.7050, 74.2433],
-      "Latur": [18.4088, 76.5604],
-      "Nanded": [19.1383, 77.3210],
-      "Chennai": [13.0827, 80.2707],
-      "Coimbatore": [11.0168, 76.9558],
-      "Madurai": [9.9252, 78.1198],
-      "Tiruchirappalli": [10.7905, 78.7047],
-      "Salem": [11.6643, 78.1460],
-      "Tiruppur": [11.1085, 77.3411],
       "Delhi": [28.7041, 77.1025],
-      "New Delhi": [28.6139, 77.2090],
-      "Basaidarapur": [28.6606, 77.1264],
-      "Rohini": [28.7495, 77.0565],
-      "Okhla": [28.5355, 77.2732],
-      "Kolkata": [22.5726, 88.3639],
-      "Howrah": [22.5958, 88.2636],
-      "Asansol": [23.6889, 86.9661],
-      "Siliguri": [26.7271, 88.3953],
-      "Durgapur": [23.5204, 87.3119],
-      "Ahmedabad": [23.0225, 72.5714],
-      "Surat": [21.1702, 72.8311],
-      "Vadodara": [22.3072, 73.1812],
-      "Rajkot": [22.3039, 70.8022],
-      "Bhavnagar": [21.7645, 72.1519],
-      "Lucknow": [26.8467, 80.9462],
-      "Kanpur": [26.4499, 80.3319],
-      "Noida": [28.5355, 77.3910],
-      "Ghaziabad": [28.6692, 77.4538],
-      "Varanasi": [25.3176, 82.9739],
-      "Agra": [27.1767, 78.0081],
-      "Thiruvananthapuram": [8.5241, 76.9366],
-      "Kochi": [9.9312, 76.2673],
-      "Kozhikode": [11.2588, 75.7804],
-      "Kollam": [8.8932, 76.6141],
-      "Thrissur": [10.5276, 76.2144],
-      "Visakhapatnam": [17.6868, 83.2185],
-      "Vijayawada": [16.5062, 80.6480],
-      "Guntur": [16.3067, 80.4365],
-      "Kurnool": [15.8281, 78.0373],
-      "Tirupati": [13.6288, 79.4192],
-      "Gurugram": [28.4595, 77.0266],
-      "Faridabad": [28.4089, 77.3178],
-      "Panipat": [29.3909, 76.9635],
-      "Ambala": [30.3782, 76.7767],
-      "Rohtak": [28.8955, 76.6066],
-      "Ludhiana": [30.9010, 75.8573],
-      "Amritsar": [31.6340, 74.8723],
-      "Jalandhar": [31.3260, 75.5762],
-      "Patiala": [30.3398, 76.3869],
-      "Jaipur": [26.9124, 75.7873],
-      "Jodhpur": [26.2389, 73.0243],
-      "Kota": [25.2138, 75.8648],
-      "Bikaner": [28.0229, 73.3119],
-      "Ajmer": [26.4499, 74.6399],
-      "Indore": [22.7196, 75.8577],
-      "Bhopal": [23.2599, 77.4126],
-      "Jabalpur": [23.1815, 79.9864],
-      "Gwalior": [26.2183, 78.1828],
-      "Bhubaneswar": [20.2961, 85.8245],
-      "Cuttack": [20.4625, 85.8828],
-      "Rourkela": [22.2604, 84.8536],
-      "Patna": [25.5941, 85.1376],
-      "Gaya": [24.7914, 85.0002],
-      "Bhagalpur": [25.2425, 86.9842],
-      "Ranchi": [23.3441, 85.3096],
-      "Jamshedpur": [22.8046, 86.2029],
-      "Dhanbad": [23.7957, 86.4304],
-      "Raipur": [21.2514, 81.6296],
-      "Bhilai": [21.1938, 81.3509],
-      "Bilaspur": [22.0797, 82.1409],
-      "Guwahati": [26.1445, 91.7362],
-      "Silchar": [24.8333, 92.7789],
-      "Dibrugarh": [27.4728, 94.9120],
-      "Shimla": [31.1048, 77.1734],
-      "Baddi": [30.9578, 76.7914],
-      "Solan": [30.9045, 77.0967],
-      "Dehradun": [30.3165, 78.0322],
-      "Haridwar": [29.9457, 78.1642],
-      "Haldwani": [29.2183, 79.5130],
-      "Panaji": [15.4909, 73.8278],
-      "Margao": [15.2832, 73.9862],
-      "Vasco da Gama": [15.3959, 73.8157],
-      "Jammu": [32.7266, 74.8570],
-      "Srinagar": [34.0837, 74.7973],
-      "Chandigarh": [30.7333, 76.7794],
-      "Puducherry": [11.9416, 79.8083],
-      "Shillong": [25.5788, 91.8933],
-      "Agartala": [23.8315, 91.2868]
+      "Chennai": [13.0827, 80.2707],
+      "Kolkata": [22.5726, 88.3639]
     };
 
     const STATE_MATRIX = {
-      "Karnataka": { code: "KA", central: 3, stateHosp: 8, disp: 142, defaultCoord: [17.3297, 76.8343], cities: ["Kalaburagi", "Wadi", "Shahabad", "Chittapur", "Sedam", "Bidar", "Raichur", "Yadgir", "Bengaluru", "Mysuru", "Hubballi", "Belagavi", "Mangaluru", "Ballari", "Koppal"] },
-      "Telangana": { code: "TS", central: 2, stateHosp: 5, disp: 72, defaultCoord: [17.3850, 78.4867], cities: ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar", "Mahbubnagar", "Khammam"] },
-      "Maharashtra": { code: "MH", central: 3, stateHosp: 12, disp: 220, defaultCoord: [19.0760, 72.8777], cities: ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Solapur", "Kolhapur", "Latur", "Nanded"] },
-      "Tamil Nadu": { code: "TN", central: 2, stateHosp: 8, disp: 210, defaultCoord: [13.0827, 80.2707], cities: ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tiruppur"] },
-      "Delhi": { code: "DL", central: 4, stateHosp: 0, disp: 35, defaultCoord: [28.7041, 77.1025], cities: ["Delhi", "New Delhi", "Basaidarapur", "Rohini", "Okhla"] },
-      "West Bengal": { code: "WB", central: 1, stateHosp: 13, disp: 180, defaultCoord: [22.5726, 88.3639], cities: ["Kolkata", "Howrah", "Asansol", "Siliguri", "Durgapur"] },
-      "Gujarat": { code: "GJ", central: 4, stateHosp: 8, disp: 125, defaultCoord: [23.0225, 72.5714], cities: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar"] },
-      "Uttar Pradesh": { code: "UP", central: 6, stateHosp: 10, disp: 155, defaultCoord: [26.8467, 80.9462], cities: ["Lucknow", "Kanpur", "Noida", "Ghaziabad", "Varanasi", "Agra"] },
-      "Kerala": { code: "KL", central: 3, stateHosp: 9, disp: 145, defaultCoord: [8.5241, 76.9366], cities: ["Thiruvananthapuram", "Kochi", "Kozhikode", "Kollam", "Thrissur"] },
-      "Andhra Pradesh": { code: "AP", central: 1, stateHosp: 4, disp: 82, defaultCoord: [16.5062, 80.6480], cities: ["Visakhapatnam", "Vijayawada", "Guntur", "Kurnool", "Tirupati"] },
-      "Haryana": { code: "HR", central: 3, stateHosp: 4, disp: 45, defaultCoord: [28.4595, 77.0266], cities: ["Gurugram", "Faridabad", "Panipat", "Ambala", "Rohtak"] },
-      "Punjab": { code: "PB", central: 1, stateHosp: 6, disp: 70, defaultCoord: [30.9010, 75.8573], cities: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala"] },
-      "Rajasthan": { code: "RJ", central: 4, stateHosp: 4, disp: 75, defaultCoord: [26.9124, 75.7873], cities: ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer"] },
-      "Madhya Pradesh": { code: "MP", central: 1, stateHosp: 6, disp: 65, defaultCoord: [22.7196, 75.8577], cities: ["Indore", "Bhopal", "Jabalpur", "Gwalior"] },
-      "Odisha": { code: "OD", central: 2, stateHosp: 6, disp: 50, defaultCoord: [20.2961, 85.8245], cities: ["Bhubaneswar", "Cuttack", "Rourkela"] },
-      "Bihar": { code: "BR", central: 2, stateHosp: 2, disp: 30, defaultCoord: [25.5941, 85.1376], cities: ["Patna", "Gaya", "Bhagalpur"] },
-      "Jharkhand": { code: "JH", central: 2, stateHosp: 1, disp: 40, defaultCoord: [23.3441, 85.3096], cities: ["Ranchi", "Jamshedpur", "Dhanbad"] },
-      "Chhattisgarh": { code: "CG", central: 4, stateHosp: 0, disp: 25, defaultCoord: [21.2514, 81.6296], cities: ["Raipur", "Bhilai", "Bilaspur"] },
-      "Assam": { code: "AS", central: 2, stateHosp: 0, disp: 28, defaultCoord: [26.1445, 91.7362], cities: ["Guwahati", "Silchar", "Dibrugarh"] },
-      "Himachal Pradesh": { code: "HP", central: 1, stateHosp: 1, disp: 15, defaultCoord: [31.1048, 77.1734], cities: ["Shimla", "Baddi", "Solan"] },
-      "Uttarakhand": { code: "UK", central: 1, stateHosp: 0, disp: 18, defaultCoord: [30.3165, 78.0322], cities: ["Dehradun", "Haridwar", "Haldwani"] },
-      "Goa": { code: "GA", central: 0, stateHosp: 1, disp: 10, defaultCoord: [15.2993, 74.1240], cities: ["Panaji", "Margao", "Vasco da Gama"] },
-      "Jammu and Kashmir": { code: "JK", central: 1, stateHosp: 0, disp: 8, defaultCoord: [32.7266, 74.8570], cities: ["Jammu", "Srinagar"] },
-      "Chandigarh": { code: "CH", central: 1, stateHosp: 0, disp: 5, defaultCoord: [30.7333, 76.7794], cities: ["Chandigarh"] },
-      "Puducherry": { code: "PY", central: 0, stateHosp: 1, disp: 14, defaultCoord: [11.9416, 79.8083], cities: ["Puducherry"] },
-      "Meghalaya": { code: "ML", central: 0, stateHosp: 0, disp: 3, defaultCoord: [25.5788, 91.8933], cities: ["Shillong"] },
-      "Tripura": { code: "TR", central: 0, stateHosp: 0, disp: 2, defaultCoord: [23.8315, 91.2868], cities: ["Agartala"] }
+      "Karnataka": { code: "KA", central: 3, stateHosp: 8, disp: 142, defaultCoord: [17.3297, 76.8343], cities: ["Kalaburagi", "Wadi", "Shahabad", "Chittapur", "Sedam", "Bidar", "Raichur", "Yadgir", "Bengaluru"] },
+      "Telangana": { code: "TS", central: 2, stateHosp: 5, disp: 72, defaultCoord: [17.3850, 78.4867], cities: ["Hyderabad", "Warangal", "Nizamabad"] },
+      "Maharashtra": { code: "MH", central: 3, stateHosp: 12, disp: 220, defaultCoord: [19.0760, 72.8777], cities: ["Mumbai", "Pune"] },
+      "Delhi": { code: "DL", central: 4, stateHosp: 0, disp: 35, defaultCoord: [28.7041, 77.1025], cities: ["Delhi"] },
+      "Tamil Nadu": { code: "TN", central: 2, stateHosp: 8, disp: 210, defaultCoord: [13.0827, 80.2707], cities: ["Chennai"] }
     };
-
-    function getCityBaseCoord(city, stateMeta) {
-      return CITY_COORDS[city] || stateMeta.defaultCoord;
-    }
 
     function generateFacilities() {
       const list = [];
@@ -298,10 +161,10 @@
         
         for (let i = 1; i <= meta.central; i++) {
           const city = cities[(i - 1) % cities.length];
-          const base = getCityBaseCoord(city, meta);
+          const base = CITY_COORDS[city] || meta.defaultCoord;
           list.push({
             id: `ESIC-${meta.code}-${i}`,
-            name: i === 1 ? `ESIC Medical College & PGIMSR, ${city}` : `ESIC Model Hospital, ${city}`,
+            name: i === 1 ? `ESIC Medical College & Hospital, ${city}` : `ESIC Model Hospital, ${city}`,
             city: city,
             state: state,
             lat: +(base[0] + (i * 0.003)).toFixed(4),
@@ -310,46 +173,17 @@
           });
         }
 
-        for (let i = 1; i <= meta.stateHosp; i++) {
-          const city = cities[i % cities.length];
-          const base = getCityBaseCoord(city, meta);
-          list.push({
-            id: `ESIS-${meta.code}-${i}`,
-            name: `ESIS Hospital, ${city}`,
-            city: city,
-            state: state,
-            lat: +(base[0] - (i * 0.004)).toFixed(4),
-            lng: +(base[1] + (i * 0.003)).toFixed(4),
-            tier: "SECONDARY"
-          });
-        }
-
         for (let i = 1; i <= meta.disp; i++) {
           const city = cities[i % cities.length];
-          const base = getCityBaseCoord(city, meta);
+          const base = CITY_COORDS[city] || meta.defaultCoord;
           list.push({
             id: `ESID-${meta.code}-${i}`,
             name: `ESI Dispensary, ${city} - Unit ${((i % 5) + 1)}`,
             city: city,
             state: state,
-            lat: +(base[0] + ((i % 10) * 0.003) - 0.015).toFixed(4),
-            lng: +(base[1] + ((i % 10) * 0.003) - 0.015).toFixed(4),
+            lat: +(base[0] + ((i % 8) * 0.003) - 0.012).toFixed(4),
+            lng: +(base[1] + ((i % 8) * 0.003) - 0.012).toFixed(4),
             tier: "PRIMARY"
-          });
-        }
-
-        const sstCount = Math.floor(meta.disp * 0.45);
-        for (let i = 1; i <= sstCount; i++) {
-          const city = cities[i % cities.length];
-          const base = getCityBaseCoord(city, meta);
-          list.push({
-            id: `SST-${meta.code}-${i}`,
-            name: `Empanelled SST Center, ${city} #${i}`,
-            city: city,
-            state: state,
-            lat: +(base[0] + ((i % 8) * 0.004)).toFixed(4),
-            lng: +(base[1] - ((i % 8) * 0.003)).toFixed(4),
-            tier: "SUPER_SPECIALTY"
           });
         }
       }
@@ -365,7 +199,7 @@
     }
 
     function initMap() {
-      map = L.map('map', { preferCanvas: true, zoomControl: false }).setView([17.0483, 76.9934], 10);
+      map = L.map('map', { preferCanvas: true, zoomControl: false }).setView([17.3297, 76.8343], 10);
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -383,9 +217,9 @@
 
       countLabel.textContent = currentAnchorPoint 
         ? `Showing closest facilities to ${currentAnchorPoint.name}`
-        : `Showing ${list.length.toLocaleString()} facilities across India`;
+        : `Showing nearest facilities`;
 
-      const mapLimit = Math.min(list.length, 80);
+      const mapLimit = Math.min(list.length, 60);
       for (let i = 0; i < mapLimit; i++) {
         const f = list[i];
         const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
@@ -393,7 +227,7 @@
 
         const circle = L.circleMarker([f.lat, f.lng], {
           radius: f.tier === 'TERTIARY' ? 6 : 4,
-          fillColor: f.tier === 'TERTIARY' ? '#ef4444' : (f.tier === 'SUPER_SPECIALTY' ? '#8b5cf6' : (f.tier === 'SECONDARY' ? '#f59e0b' : '#10b981')),
+          fillColor: f.tier === 'TERTIARY' ? '#ef4444' : '#10b981',
           color: '#ffffff',
           weight: 1,
           fillOpacity: 0.85
@@ -403,4 +237,166 @@
           <div class="text-xs p-1">
             <strong class="text-slate-900 block font-semibold text-xs mb-0.5">${f.name}</strong>
             <div class="text-slate-600 mb-1">${f.city}, ${f.state}</div>
-            <span class="inline-block px-1
+            <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[9px] font-semibold">${f.tier}</span>
+            ${distBadge}
+            <a href="${gmapsUrl}" target="_blank" rel="noopener" class="mt-2 block text-center py-1.5 px-2 bg-blue-600 text-white rounded text-[10px] font-medium">
+              🚗 Navigate in Google Maps
+            </a>
+          </div>
+        `);
+        markersLayer.addLayer(circle);
+      }
+
+      const cardLimit = Math.min(list.length, 35);
+      const frag = document.createDocumentFragment();
+
+      for (let i = 0; i < cardLimit; i++) {
+        const f = list[i];
+        const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
+        const distBadge = f.distanceKm !== undefined 
+          ? `<span class="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">📍 ${f.distanceKm} km</span>`
+          : '';
+
+        const card = document.createElement('div');
+        card.className = "p-3.5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2.5";
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <h2 class="text-xs font-bold text-slate-800 leading-snug cursor-pointer hover:text-emerald-600">${f.name}</h2>
+              <p class="text-[11px] text-slate-500 mt-0.5">${f.city}, ${f.state}</p>
+            </div>
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full border border-slate-200 font-semibold">${f.tier}</span>
+              ${distBadge}
+            </div>
+          </div>
+
+          <a href="${gmapsUrl}" target="_blank" rel="noopener" class="w-full flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white rounded-xl text-xs font-medium transition shadow-sm">
+            <span>🚗</span> Navigate in Google Maps
+          </a>
+        `;
+
+        card.querySelector('h2').addEventListener('click', () => {
+          map.flyTo([f.lat, f.lng], 13, { duration: 0.8 });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        frag.appendChild(card);
+      }
+      listContainer.appendChild(frag);
+    }
+
+    function setLocationAnchor(lat, lng, label) {
+      currentAnchorPoint = { lat, lng, name: label };
+
+      const badge = document.getElementById('active-anchor-badge');
+      badge.textContent = `📍 Nearest to: ${label}`;
+      badge.classList.remove('hidden');
+      document.getElementById('clear-btn').classList.remove('hidden');
+
+      if (searchPin) map.removeLayer(searchPin);
+      searchPin = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'pin',
+          html: `<div class="w-6 h-6 bg-blue-600 text-white rounded-full border-2 border-white flex items-center justify-center text-xs shadow-md font-bold">📍</div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 24]
+        })
+      }).addTo(map);
+
+      map.flyTo([lat, lng], 10, { duration: 0.8 });
+
+      let ranked = allFacilities.map(f => ({
+        ...f,
+        distanceKm: calculateDistance(lat, lng, f.lat, f.lng)
+      }));
+
+      ranked.sort((a, b) => a.distanceKm - b.distanceKm);
+      render(ranked);
+    }
+
+    async function executeSearch(query) {
+      const q = query.trim();
+      if (!q) return;
+
+      const normalized = q.toLowerCase();
+
+      if (LOCAL_GEO_CACHE[normalized]) {
+        const hit = LOCAL_GEO_CACHE[normalized];
+        setLocationAnchor(hit.lat, hit.lng, hit.name);
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&limit=1&q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          const name = data[0].display_name.split(',')[0];
+          setLocationAnchor(lat, lng, name);
+          return;
+        }
+      } catch (e) {}
+
+      const filtered = allFacilities.filter(f => 
+        f.city.toLowerCase().includes(normalized) || 
+        f.state.toLowerCase().includes(normalized) || 
+        f.name.toLowerCase().includes(normalized)
+      );
+
+      if (filtered.length > 0) {
+        setLocationAnchor(filtered[0].lat, filtered[0].lng, filtered[0].city);
+      } else {
+        render(allFacilities);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initMap();
+      allFacilities = generateFacilities();
+      document.getElementById('stats-counter').textContent = `${allFacilities.length.toLocaleString()} Facilities`;
+
+      // Initial anchor: Gulbarga
+      setLocationAnchor(17.3297, 76.8343, "Gulbarga");
+
+      document.getElementById('search-btn').addEventListener('click', () => {
+        executeSearch(document.getElementById('location-input').value);
+      });
+
+      document.getElementById('location-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          executeSearch(e.target.value);
+        }
+      });
+
+      document.getElementById('clear-btn').addEventListener('click', () => {
+        document.getElementById('location-input').value = '';
+        document.getElementById('clear-btn').classList.add('hidden');
+        document.getElementById('active-anchor-badge').classList.add('hidden');
+        if (searchPin) map.removeLayer(searchPin);
+        currentAnchorPoint = null;
+        render(allFacilities);
+      });
+
+      document.getElementById('gps-btn').addEventListener('click', () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              setLocationAnchor(pos.coords.latitude, pos.coords.longitude, "Your Location");
+            },
+            () => {
+              alert("Could not access GPS. Please check browser permissions.");
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+          );
+        } else {
+          alert("Geolocation is not supported by your browser.");
+        }
+      });
+
+      setTimeout(() => map.invalidateSize(), 300);
+    });
+  </script>
+</body>
+</html>
