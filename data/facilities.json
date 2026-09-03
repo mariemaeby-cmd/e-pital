@@ -1,122 +1,98 @@
-
-cat << 'EOF' > generate.py
-import json, os
-
-os.makedirs("data", exist_ok=True)
-
-ZONE_M = {
-    "NORTH": ["Delhi", "Haryana", "Punjab", "Rajasthan", "Himachal Pradesh", "Jammu and Kashmir", "Chandigarh", "Uttarakhand"],
-    "SOUTH": ["Karnataka", "Tamil Nadu", "Telangana", "Andhra Pradesh", "Kerala", "Puducherry"],
-    "WEST": ["Maharashtra", "Gujarat", "Goa"],
-    "EAST": ["West Bengal", "Odisha", "Bihar", "Jharkhand"],
-    "CENTRAL": ["Madhya Pradesh", "Chhattisgarh", "Uttar Pradesh"],
-    "NORTH_EAST": ["Assam", "Meghalaya", "Tripura", "Nagaland", "Manipur", "Mizoram", "Arunachal Pradesh", "Sikkim"]
-}
-
-S_DATA = {
-    "Karnataka": ("KA", 3, 8, 142, 15.3173, 75.7139),
-    "Maharashtra": ("MH", 3, 12, 220, 19.7515, 75.7139),
-    "Tamil Nadu": ("TN", 2, 8, 210, 11.1271, 78.6569),
-    "Delhi": ("DL", 4, 0, 35, 28.7041, 77.1025),
-    "West Bengal": ("WB", 1, 13, 180, 22.9868, 87.855),
-    "Telangana": ("TS", 2, 5, 72, 18.1124, 79.0193),
-    "Gujarat": ("GJ", 4, 8, 125, 22.2587, 71.1924),
-    "Uttar Pradesh": ("UP", 6, 10, 155, 26.8467, 80.9462),
-    "Kerala": ("KL", 3, 9, 145, 10.8505, 76.2711),
-    "Andhra Pradesh": ("AP", 1, 4, 82, 15.9129, 79.74),
-    "Haryana": ("HR", 3, 4, 45, 29.0588, 76.0856),
-    "Punjab": ("PB", 1, 6, 70, 31.1471, 75.3412),
-    "Rajasthan": ("RJ", 4, 4, 75, 27.0238, 74.2179),
-    "Madhya Pradesh": ("MP", 1, 6, 65, 22.9734, 78.6569),
-    "Odisha": ("OD", 2, 6, 50, 20.9517, 85.0985),
-    "Bihar": ("BR", 2, 2, 30, 25.0961, 85.3131),
-    "Jharkhand": ("JH", 2, 1, 40, 23.6102, 85.2799),
-    "Chhattisgarh": ("CG", 4, 0, 25, 21.2787, 81.8661),
-    "Assam": ("AS", 2, 0, 28, 26.2006, 92.9376),
-    "Himachal Pradesh": ("HP", 1, 1, 15, 31.1048, 77.1734),
-    "Uttarakhand": ("UK", 1, 0, 18, 30.0668, 79.0193),
-    "Goa": ("GA", 0, 1, 10, 15.2993, 74.124),
-    "Jammu and Kashmir": ("JK", 1, 0, 8, 33.7782, 76.5762),
-    "Chandigarh": ("CH", 1, 0, 5, 30.7333, 76.7794),
-    "Puducherry": ("PY", 0, 1, 14, 11.9416, 79.8083),
-    "Meghalaya": ("ML", 0, 0, 3, 25.467, 91.3662),
-    "Tripura": ("TR", 0, 0, 2, 23.9408, 91.9882),
-    "Nagaland": ("NL", 0, 0, 1, 26.1584, 94.5624),
-    "Manipur": ("MN", 0, 0, 1, 24.6637, 93.9063),
-    "Mizoram": ("MZ", 0, 0, 1, 23.1645, 92.9376),
-    "Arunachal Pradesh": ("AR", 0, 0, 1, 28.218, 94.7278),
-    "Sikkim": ("SK", 0, 0, 1, 27.533, 88.5122)
-}
-
-def get_zone(state):
-    for zone, states in ZONE_M.items():
-        if state in states:
-            return zone
-    return "CENTRAL"
-
-res = []
-for state, (code, he, hs, dp, lat, lng) in S_DATA.items():
-    zone = get_zone(state)
-    for i in range(1, he + 1):
-        res.append({
-            "facility_id": f"ESIC-{code}-{i:03d}",
-            "name": f"ESIC Model Hospital & PGIMSR {state} Hub {i}",
-            "administration": "CENTRAL_ESIC",
-            "facility_type": "MEDICAL_COLLEGE_HOSPITAL" if i == 1 else "HOSPITAL",
-            "zone": zone,
-            "address": {"street": f"Main ESI Road {i}", "district": f"{state} Central", "state": state, "pincode": f"{500000 + i * 111}"},
-            "coordinates": {"lat": round(lat + (i * 0.012), 4), "lng": round(lng + (i * 0.015), 4)},
-            "tier": "TERTIARY",
-            "referral_required": False,
-            "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "CARDIOLOGY", "NEPHROLOGY_DIALYSIS", "SURGERY"],
-            "contact": {"phone": f"080-2300{i:03d}", "emergency_helpline": "1800-11-2526"}
-        })
-    for i in range(1, hs + 1):
-        res.append({
-            "facility_id": f"ESIS-{code}-{i:03d}",
-            "name": f"ESIS Hospital {state} - {i}",
-            "administration": "STATE_ESIS",
-            "facility_type": "HOSPITAL",
-            "zone": zone,
-            "address": {"street": f"Labor Complex {i}", "district": f"{state} Zone", "state": state, "pincode": f"{500000 + (i + 10) * 111}"},
-            "coordinates": {"lat": round(lat - (i * 0.015), 4), "lng": round(lng + (i * 0.01), 4)},
-            "tier": "SECONDARY",
-            "referral_required": True,
-            "services_available": ["OPD", "IPD", "GENERAL_MEDICINE", "SURGERY", "MATERNITY", "DIAGNOSTICS"],
-            "contact": {"phone": f"022-2400{i:03d}", "emergency_helpline": "104"}
-        })
-    for i in range(1, dp + 1):
-        res.append({
-            "facility_id": f"ESID-{code}-{i:04d}",
-            "name": f"ESI Dispensary {state} No. {i}",
-            "administration": "STATE_ESIS",
-            "facility_type": "DISPENSARY",
-            "zone": zone,
-            "address": {"street": f"Industrial Ward {i}", "district": f"{state} District", "state": state, "pincode": f"{500000 + i * 23}"},
-            "coordinates": {"lat": round(lat + ((i % 20) * 0.008) - 0.05, 4), "lng": round(lng + ((i % 20) * 0.009) - 0.05, 4)},
-            "tier": "PRIMARY",
-            "referral_required": False,
-            "services_available": ["OPD", "PHARMACY", "BASIC_LAB"],
-            "contact": {"phone": "1800-11-2526", "emergency_helpline": "104"}
-        })
-    for i in range(1, int(dp * 0.4) + 1):
-        res.append({
-            "facility_id": f"TIEUP-{code}-{i:04d}",
-            "name": f"Empanelled SST Center {state} - {i}",
-            "administration": "EMPANELLED_PRIVATE",
-            "facility_type": "HOSPITAL",
-            "zone": zone,
-            "address": {"street": f"Medical Enclave {i}", "district": f"{state} Metro", "state": state, "pincode": f"{500000 + i * 47}"},
-            "coordinates": {"lat": round(lat + ((i % 15) * 0.011), 4), "lng": round(lng - ((i % 15) * 0.007), 4)},
-            "tier": "SUPER_SPECIALTY",
-            "referral_required": True,
-            "services_available": ["CARDIOLOGY", "NEPHROLOGY_DIALYSIS", "ONCOLOGY", "NEUROSURGERY"],
-            "contact": {"phone": f"011-4000{i:03d}", "emergency_helpline": "104"}
-        })
-
-with open("data/facilities.json", "w", encoding="utf-8") as f:
-    json.dump(res, f, indent=2, ensure_ascii=False)
-
-print(f"Success: Generated {len(res)} facilities in data/facilities.json")
-EOF
-          
+[
+  {
+    "facility_id": "ESIC-KA-001",
+    "name": "ESIC Medical College & PGIMSR, Rajajinagar",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Rajajinagar 3rd Block",
+      "district": "Bengaluru Urban",
+      "state": "Karnataka",
+      "pincode": "560010"
+    },
+    "coordinates": {
+      "lat": 12.9892,
+      "lng": 77.5539
+    },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "CARDIOLOGY", "NEPHROLOGY_DIALYSIS", "SURGERY"],
+    "contact": {
+      "phone": "080-23321803",
+      "emergency_helpline": "1800-11-2526"
+    }
+  },
+  {
+    "facility_id": "ESIC-KA-002",
+    "name": "ESIC Medical College & Hospital, Kalaburagi",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "MEDICAL_COLLEGE_HOSPITAL",
+    "zone": "SOUTH",
+    "address": {
+      "street": "Sedam Road",
+      "district": "Kalaburagi",
+      "state": "Karnataka",
+      "pincode": "585106"
+    },
+    "coordinates": {
+      "lat": 17.3297,
+      "lng": 76.8343
+    },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "CARDIOLOGY", "NEPHROLOGY_DIALYSIS", "SURGERY"],
+    "contact": {
+      "phone": "08472-265546",
+      "emergency_helpline": "1800-11-2526"
+    }
+  },
+  {
+    "facility_id": "ESIC-DL-001",
+    "name": "ESIC Model Hospital Basaidarapur",
+    "administration": "CENTRAL_ESIC",
+    "facility_type": "HOSPITAL",
+    "zone": "NORTH",
+    "address": {
+      "street": "Ring Road",
+      "district": "New Delhi",
+      "state": "Delhi",
+      "pincode": "110015"
+    },
+    "coordinates": {
+      "lat": 28.6606,
+      "lng": 77.1362
+    },
+    "tier": "TERTIARY",
+    "referral_required": false,
+    "services_available": ["OPD", "IPD", "EMERGENCY", "ICU", "CARDIOLOGY"],
+    "contact": {
+      "phone": "011-25970800",
+      "emergency_helpline": "1800-11-2526"
+    }
+  },
+  {
+    "facility_id": "ESIS-MH-001",
+    "name": "ESIS Hospital Worli",
+    "administration": "STATE_ESIS",
+    "facility_type": "HOSPITAL",
+    "zone": "WEST",
+    "address": {
+      "street": "Ganpatrao Kadam Marg",
+      "district": "Mumbai City",
+      "state": "Maharashtra",
+      "pincode": "400018"
+    },
+    "coordinates": {
+      "lat": 18.9986,
+      "lng": 72.8181
+    },
+    "tier": "SECONDARY",
+    "referral_required": true,
+    "services_available": ["OPD", "IPD", "GENERAL_MEDICINE", "SURGERY"],
+    "contact": {
+      "phone": "022-24933142",
+      "emergency_helpline": "104"
+    }
+  }
+]
