@@ -253,27 +253,46 @@
         setAnchor(17.0483, 76.9934, "Wadi Junction");
       });
 
-      // Load Real JSON Dataset
+      // Flexible Data Loader
       fetch('./data/3000facilities.json')
-        .then(res => res.json())
-        .then(data => {
-          allFacilities = data.map(item => ({
-            id: item.id || '',
-            name: item.name || '',
-            city: item.district || item.city || '',
-            state: item.state || '',
-            tier: item.tier || 'PRIMARY',
-            lat: item.coordinates ? item.coordinates.lat : (item.lat || 0),
-            lng: item.coordinates ? item.coordinates.lng : (item.lng || 0)
-          })).filter(f => f.lat >= 6 && f.lat <= 37 && f.lng >= 68 && f.lng <= 98);
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(raw => {
+          const rawList = Array.isArray(raw) ? raw : (raw.facilities || raw.data || raw.items || Object.values(raw)[0] || []);
+
+          allFacilities = rawList.map((item, idx) => {
+            const rawLat = item.coordinates?.lat ?? item.coordinates?.latitude ?? item.lat ?? item.latitude ?? item.Lat ?? item.Latitude ?? 0;
+            const rawLng = item.coordinates?.lng ?? item.coordinates?.longitude ?? item.coordinates?.lon ?? item.lng ?? item.longitude ?? item.lon ?? item.Lng ?? item.Longitude ?? 0;
+
+            const parsedLat = parseFloat(rawLat);
+            const parsedLng = parseFloat(rawLng);
+
+            return {
+              id: item.id || `ESIC-${idx + 1}`,
+              name: item.name || item.facility_name || item.hospital_name || 'ESI Facility',
+              city: item.city || item.district || item.location || 'Unknown',
+              state: item.state || item.state_name || '',
+              tier: item.tier || item.type || 'PRIMARY',
+              lat: isNaN(parsedLat) ? 0 : parsedLat,
+              lng: isNaN(parsedLng) ? 0 : parsedLng,
+              distanceKm: 0
+            };
+          }).filter(f => f.lat >= 6 && f.lat <= 38 && f.lng >= 68 && f.lng <= 98);
 
           document.getElementById('stats-counter').textContent = `${allFacilities.length.toLocaleString()} Facilities`;
-          setAnchor(17.0483, 76.9934, "Wadi Junction");
+          
+          if (allFacilities.length > 0) {
+            setAnchor(17.0483, 76.9934, "Wadi Junction");
+          } else {
+            document.getElementById('stats-counter').textContent = "0 Facilities Found";
+          }
           setTimeout(() => map.invalidateSize(), 200);
         })
         .catch(err => {
           console.error("Fetch failed:", err);
-          document.getElementById('stats-counter').textContent = "Error Loading";
+          document.getElementById('stats-counter').textContent = "Fetch Failed (404/CORS)";
         });
     });
   </script>
