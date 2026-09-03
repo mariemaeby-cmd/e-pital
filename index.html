@@ -34,10 +34,10 @@
     </div>
   </header>
 
-  <div class="flex h-[calc(100vh-72px)]">
+  <div class="flex flex-col md:flex-row h-[calc(100vh-72px)]">
     
     <!-- Sidebar / Filters -->
-    <aside class="w-full md:w-96 bg-white border-r border-slate-200 flex flex-col z-20 shadow-md">
+    <aside class="w-full md:w-96 bg-white border-r border-slate-200 flex flex-col z-20 shadow-md h-1/2 md:h-full">
       
       <!-- Search & Controls -->
       <div class="p-4 border-b border-slate-100 space-y-3 bg-slate-50/50">
@@ -78,7 +78,7 @@
     </aside>
 
     <!-- Map Canvas -->
-    <main class="flex-1 relative">
+    <main class="flex-1 relative h-1/2 md:h-full">
       <div id="map"></div>
     </main>
   </div>
@@ -88,9 +88,8 @@
     let markersLayer = L.layerGroup();
     let allFacilities = [];
 
-    // Initialize Map centered on India
     function initMap() {
-      map = L.map('map', { zoomControl: false }).setView([22.5937, 78.9629], 5);
+      map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -100,28 +99,43 @@
       markersLayer.addTo(map);
     }
 
-    // Load data/facilities.json or root facilities.json
     async function loadData() {
       const statsCounter = document.getElementById('stats-counter');
-      try {
-        let res = await fetch('data/facilities.json');
-        if (!res.ok) res = await fetch('facilities.json');
-        if (!res.ok) throw new Error('Data file not found');
+      const candidatePaths = [
+        './facilities.json',
+        './data/facilities.json',
+        'facilities.json',
+        'data/facilities.json',
+        '/e-pital/facilities.json',
+        '/e-pital/data/facilities.json'
+      ];
 
-        allFacilities = await res.json();
-        statsCounter.textContent = `${allFacilities.length.toLocaleString()} Facilities Active`;
-        renderFacilities(allFacilities);
-      } catch (err) {
-        console.error('Error loading dataset:', err);
+      let dataLoaded = false;
+
+      for (const path of candidatePaths) {
+        try {
+          const res = await fetch(path);
+          if (res.ok) {
+            allFacilities = await res.json();
+            statsCounter.textContent = `${allFacilities.length.toLocaleString()} Facilities Active`;
+            renderFacilities(allFacilities);
+            dataLoaded = true;
+            break;
+          }
+        } catch (e) {
+          // continue checking next fallback path
+        }
+      }
+
+      if (!dataLoaded) {
         statsCounter.textContent = 'Failed to load dataset';
         document.getElementById('facility-list').innerHTML = `
           <div class="p-4 text-center text-xs text-rose-600 bg-rose-50 rounded-lg border border-rose-200 m-2">
-            Could not load facilities.json. Ensure it exists at <code>/data/facilities.json</code> or <code>/facilities.json</code>.
+            Could not locate <code>facilities.json</code>. Ensure the file is saved and committed to the repository root.
           </div>`;
       }
     }
 
-    // Render markers on map and card list
     function renderFacilities(list) {
       markersLayer.clearLayers();
       const listContainer = document.getElementById('facility-list');
@@ -132,12 +146,12 @@
         return;
       }
 
-      // Cap map marker rendering to 500 at a time for smooth UI performance
       const renderLimit = list.slice(0, 500);
 
       renderLimit.forEach(f => {
-        if (f.coordinates && f.coordinates.lat && f.coordinates.lng) {
-          const marker = L.circleMarker([f.coordinates.lat, f.coordinates.lng], {
+        const coords = f.coordinates;
+        if (coords && coords.lat && coords.lng) {
+          const marker = L.circleMarker([coords.lat, coords.lng], {
             radius: f.tier === 'TERTIARY' ? 7 : 5,
             fillColor: f.tier === 'TERTIARY' ? '#ef4444' : f.tier === 'SECONDARY' ? '#f59e0b' : '#10b981',
             color: '#ffffff',
@@ -148,32 +162,31 @@
 
           marker.bindPopup(`
             <div class="text-xs p-1">
-              <strong class="text-slate-900 block font-semibold text-sm mb-1">${f.name}</strong>
+              <strong class="text-slate-900 block font-semibold text-sm mb-1">${f.name || 'ESI Facility'}</strong>
               <div class="text-slate-600 mb-1">${f.address ? `${f.address.street || ''}, ${f.address.district || ''}` : ''}</div>
-              <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10pt] font-semibold">${f.tier}</span>
+              <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10pt] font-semibold">${f.tier || 'FACILITY'}</span>
             </div>
           `);
 
           markersLayer.addLayer(marker);
         }
 
-        // List item card
         const card = document.createElement('div');
         card.className = "p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg cursor-pointer transition shadow-xs";
         card.innerHTML = `
           <div class="flex items-start justify-between">
-            <h2 class="text-xs font-semibold text-slate-800 leading-tight mb-1">${f.name}</h2>
+            <h2 class="text-xs font-semibold text-slate-800 leading-tight mb-1">${f.name || 'ESI Facility'}</h2>
           </div>
           <p class="text-[11px] text-slate-500 mb-2">${f.address?.district || ''}, ${f.address?.state || ''}</p>
           <div class="flex items-center space-x-1">
-            <span class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">${f.tier}</span>
-            <span class="text-[10px] font-mono px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded border border-emerald-200">${f.administration}</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">${f.tier || 'GENERAL'}</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded border border-emerald-200">${f.administration || 'ESIC'}</span>
           </div>
         `;
 
         card.addEventListener('click', () => {
-          if (f.coordinates?.lat && f.coordinates?.lng) {
-            map.flyTo([f.coordinates.lat, f.coordinates.lng], 13, { duration: 1.5 });
+          if (coords?.lat && coords?.lng) {
+            map.flyTo([coords.lat, coords.lng], 13, { duration: 1.5 });
           }
         });
 
@@ -181,7 +194,6 @@
       });
     }
 
-    // Filter Handlers
     function applyFilters() {
       const q = document.getElementById('search-input').value.toLowerCase().trim();
       const zone = document.getElementById('zone-filter').value;
@@ -189,7 +201,7 @@
 
       const filtered = allFacilities.filter(f => {
         const matchesQuery = !q || 
-          f.name.toLowerCase().includes(q) ||
+          (f.name && f.name.toLowerCase().includes(q)) ||
           (f.address?.state && f.address.state.toLowerCase().includes(q)) ||
           (f.address?.district && f.address.district.toLowerCase().includes(q));
 
