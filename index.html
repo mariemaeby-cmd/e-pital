@@ -1,32 +1,40 @@
-// --- EMERGENCY GEOLOCATION OVERRIDE (North Karnataka & Telangana Borders) ---
-const DISTRICT_GEO_MAP = {
-  "gulbarga": [17.3297, 76.8343],
-  "kalaburagi": [17.3297, 76.8343],
-  "wadi": [17.0483, 76.9934],
-  "shahabad": [17.1332, 76.9388],
-  "chittapur": [17.1186, 77.0864],
-  "bidar": [17.9104, 77.5199],
-  "raichur": [16.2120, 77.3439],
-  "yadgir": [16.7639, 77.1378],
-  "warangal": [17.9689, 79.5941],
-  "nizamabad": [18.6725, 78.0941],
-  "hyderabad": [17.3850, 78.4867],
-  "bengaluru": [12.9716, 77.5946],
-  "bangalore": [12.9716, 77.5946]
-};
+<script>
+// --- ROBUST GEOLOCATION PATCH ---
+window.addEventListener('DOMContentLoaded', () => {
+  const GEO_MAP = {
+    "gulbarga": [17.3297, 76.8343],
+    "kalaburagi": [17.3297, 76.8343],
+    "wadi": [17.0483, 76.9934],
+    "shahabad": [17.1332, 76.9388],
+    "chittapur": [17.1186, 77.0864],
+    "bidar": [17.9104, 77.5199],
+    "raichur": [16.2120, 77.3439],
+    "yadgir": [16.7639, 77.1378],
+    "warangal": [17.9689, 79.5941],
+    "nizamabad": [18.6725, 78.0941],
+    "hyderabad": [17.3850, 78.4867],
+    "nagole": [17.3753, 78.5637],
+    "bengaluru": [12.9716, 77.5946],
+    "bangalore": [12.9716, 77.5946]
+  };
 
-// Dynamically patch coordinates based on facility name, district, or address
-if (Array.isArray(facilities)) {
-  facilities.forEach(f => {
-    const text = `${f.name || ""} ${f.district || ""} ${f.address || ""}`.toLowerCase();
-    for (const [key, coords] of Object.entries(DISTRICT_GEO_MAP)) {
-      if (text.includes(key)) {
-        f.lat = coords[0] + (Math.random() - 0.5) * 0.01;
-        f.lng = coords[1] + (Math.random() - 0.5) * 0.01;
-        break;
+  function patchData(arr) {
+    if (!Array.isArray(arr)) return;
+    arr.forEach(f => {
+      const text = `${f.name || ''} ${f.district || ''} ${f.address || ''}`.toLowerCase();
+      for (const [key, coords] of Object.entries(GEO_MAP)) {
+        if (text.includes(key)) {
+          f.lat = coords[0] + (Math.random() - 0.5) * 0.01;
+          f.lng = coords[1] + (Math.random() - 0.5) * 0.01;
+          break;
+        }
       }
-    }
-  });
-}
-// --------------------------------------------------------------------------
+    });
+  }
 
+  // Attempt patching global facility arrays safely
+  if (typeof facilities !== 'undefined') patchData(facilities);
+  if (typeof allFacilities !== 'undefined') patchData(allFacilities);
+  if (typeof window.facilities !== 'undefined') patchData(window.facilities);
+});
+</script>
