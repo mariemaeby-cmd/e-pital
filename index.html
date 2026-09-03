@@ -20,17 +20,17 @@
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
 
-  <!-- Header -->
-  <header class="h-[72px] bg-slate-900 text-white px-6 flex items-center justify-between border-b border-slate-800 shadow-sm">
+  <!-- Top Navbar -->
+  <header class="h-[72px] bg-slate-900 text-white px-4 md:px-6 flex items-center justify-between border-b border-slate-800 shadow-sm">
     <div class="flex items-center space-x-3">
-      <div class="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-white text-lg">e</div>
+      <div class="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-white text-lg shadow-sm">e</div>
       <div>
         <h1 class="text-lg font-bold tracking-tight leading-tight">e-pital</h1>
-        <p class="text-xs text-slate-400">National ESI Facility Directory & Triage</p>
+        <p class="text-xs text-slate-400">Smart ESI Directory & Proximity Navigator</p>
       </div>
     </div>
     <div id="stats-counter" class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full text-emerald-400 font-mono">
-      Loading facilities...
+      Loading...
     </div>
   </header>
 
@@ -39,18 +39,38 @@
     <!-- Sidebar -->
     <aside class="w-full md:w-96 bg-white border-r border-slate-200 flex flex-col z-20 shadow-md h-1/2 md:h-full">
       
-      <div class="p-4 border-b border-slate-100 space-y-3 bg-slate-50/50">
-        <div>
+      <!-- Search & Controls -->
+      <div class="p-3.5 border-b border-slate-100 space-y-2.5 bg-slate-50/75">
+        <div class="flex space-x-2">
           <input
             id="search-input"
             type="text"
-            placeholder="Search facility, state, district, or PIN..."
-            class="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+            placeholder="Search any town, village, district, or PIN..."
+            class="flex-1 px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
           />
+          <button
+            id="search-btn"
+            title="Search Location"
+            class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
+          >
+            Find
+          </button>
+          <button
+            id="gps-btn"
+            title="Use My Current GPS Location"
+            class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center"
+          >
+            📍 GPS
+          </button>
+        </div>
+
+        <div id="status-banner" class="hidden px-2.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-[11px] flex justify-between items-center">
+          <span id="status-text">Searching...</span>
+          <button id="clear-search" class="text-[11px] font-bold text-blue-900 underline ml-2">Reset</button>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-          <select id="zone-filter" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <select id="zone-filter" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="">All Zones</option>
             <option value="NORTH">North Zone</option>
             <option value="SOUTH">South Zone</option>
@@ -60,7 +80,7 @@
             <option value="NORTH_EAST">North-East Zone</option>
           </select>
 
-          <select id="tier-filter" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <select id="tier-filter" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="">All Tiers</option>
             <option value="PRIMARY">Primary (Dispensary)</option>
             <option value="SECONDARY">Secondary (Hospital)</option>
@@ -70,10 +90,11 @@
         </div>
       </div>
 
+      <!-- Facility List Results -->
       <div id="facility-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 custom-scrollbar p-2 space-y-2"></div>
     </aside>
 
-    <!-- Interactive Map -->
+    <!-- Map Canvas -->
     <main class="flex-1 relative h-1/2 md:h-full">
       <div id="map"></div>
     </main>
@@ -82,9 +103,11 @@
   <script>
     let map;
     let markersLayer = L.layerGroup();
+    let searchTargetMarker = null;
     let allFacilities = [];
+    let currentAnchorPoint = null;
 
-    // Master state matrix for generating full nationwide network (~3,000 facilities)
+    // Master distribution matrix
     const STATE_MATRIX = {
       "Karnataka": { code: "KA", zone: "SOUTH", central: 3, stateHosp: 8, disp: 142, lat: 15.3173, lng: 75.7139 },
       "Maharashtra": { code: "MH", zone: "WEST", central: 3, stateHosp: 12, disp: 220, lat: 19.7515, lng: 75.7139 },
@@ -118,15 +141,14 @@
     function buildNationwideDataset() {
       const facilities = [];
       for (const [state, meta] of Object.entries(STATE_MATRIX)) {
-        // 1. Central ESIC Hospitals / Medical Colleges
         for (let i = 1; i <= meta.central; i++) {
           facilities.push({
             facility_id: `ESIC-${meta.code}-${String(i).padStart(3, '0')}`,
-            name: i === 1 ? `ESIC Medical College & PGIMSR ${state}` : `ESIC Model Hospital ${state} Hub ${i}`,
+            name: i === 1 ? `ESIC Medical College & Hospital, ${state}` : `ESIC Model Hospital ${state} Cluster ${i}`,
             administration: "CENTRAL_ESIC",
             facility_type: i === 1 ? "MEDICAL_COLLEGE_HOSPITAL" : "HOSPITAL",
             zone: meta.zone,
-            address: { street: `Main ESIC Medical Corridor ${i}`, district: `${state} Urban`, state: state, pincode: `${500000 + i * 111}` },
+            address: { street: `ESIC Health Boulevard ${i}`, district: `${state} Urban`, state: state, pincode: `${500000 + i * 111}` },
             coordinates: { lat: +(meta.lat + (i * 0.015)).toFixed(4), lng: +(meta.lng + (i * 0.012)).toFixed(4) },
             tier: "TERTIARY",
             referral_required: false,
@@ -134,12 +156,10 @@
             contact: { phone: `080-2300${String(i).padStart(3, '0')}`, emergency_helpline: "1800-11-2526" }
           });
         }
-
-        // 2. State ESIS Secondary Hospitals
         for (let i = 1; i <= meta.stateHosp; i++) {
           facilities.push({
             facility_id: `ESIS-${meta.code}-${String(i).padStart(3, '0')}`,
-            name: `ESIS Hospital ${state} - Division ${i}`,
+            name: `ESIS Hospital ${state} - Zone ${i}`,
             administration: "STATE_ESIS",
             facility_type: "HOSPITAL",
             zone: meta.zone,
@@ -151,8 +171,6 @@
             contact: { phone: `022-2400${String(i).padStart(3, '0')}`, emergency_helpline: "104" }
           });
         }
-
-        // 3. ESI Primary Dispensaries
         for (let i = 1; i <= meta.disp; i++) {
           facilities.push({
             facility_id: `ESID-${meta.code}-${String(i).padStart(4, '0')}`,
@@ -168,13 +186,11 @@
             contact: { phone: "1800-11-2526", emergency_helpline: "104" }
           });
         }
-
-        // 4. Empanelled Private Super-Specialty Hospitals (SST)
         const empanelledCount = Math.floor(meta.disp * 0.45);
         for (let i = 1; i <= empanelledCount; i++) {
           facilities.push({
             facility_id: `TIEUP-${meta.code}-${String(i).padStart(4, '0')}`,
-            name: `Empanelled Super Specialty Center ${state} - ${i}`,
+            name: `Empanelled SST Hospital ${state} - ${i}`,
             administration: "EMPANELLED_PRIVATE",
             facility_type: "HOSPITAL",
             zone: meta.zone,
@@ -188,6 +204,19 @@
         }
       }
       return facilities;
+    }
+
+    // Haversine Distance Formula (km)
+    function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return +(R * c).toFixed(1);
     }
 
     function initMap() {
@@ -218,8 +247,7 @@
         return;
       }
 
-      // Render top 400 for ultra-fast mobile map panning performance
-      const renderLimit = list.slice(0, 400);
+      const renderLimit = list.slice(0, 300);
 
       renderLimit.forEach(f => {
         const coords = f.coordinates;
@@ -233,11 +261,14 @@
             fillOpacity: 0.85
           });
 
+          const distBadge = f.distanceKm !== undefined ? `<div class="text-emerald-700 font-bold text-[11px] mt-1">📍 ${f.distanceKm} km away</div>` : '';
+
           marker.bindPopup(`
             <div class="text-xs p-1">
               <strong class="text-slate-900 block font-semibold text-sm mb-1">${f.name}</strong>
               <div class="text-slate-600 mb-1">${f.address ? `${f.address.street}, ${f.address.district}` : ''}</div>
               <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px] font-semibold">${f.tier}</span>
+              ${distBadge}
             </div>
           `);
 
@@ -246,8 +277,14 @@
 
         const card = document.createElement('div');
         card.className = "p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg cursor-pointer transition shadow-xs";
+        
+        const distLabel = f.distanceKm !== undefined ? `<span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">${f.distanceKm} km</span>` : '';
+
         card.innerHTML = `
-          <h2 class="text-xs font-semibold text-slate-800 leading-tight mb-1">${f.name}</h2>
+          <div class="flex items-start justify-between gap-2">
+            <h2 class="text-xs font-semibold text-slate-800 leading-tight mb-1">${f.name}</h2>
+            ${distLabel}
+          </div>
           <p class="text-[11px] text-slate-500 mb-2">${f.address?.district || ''}, ${f.address?.state || ''}</p>
           <div class="flex items-center space-x-1">
             <span class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">${f.tier}</span>
@@ -265,35 +302,109 @@
       });
     }
 
+    // Geocode user input (Any town, village, or district in India)
+    async function searchGeocodeLocation(query) {
+      const banner = document.getElementById('status-banner');
+      const statusText = document.getElementById('status-text');
+      
+      banner.classList.remove('hidden');
+      statusText.textContent = `Searching location "${query}"...`;
+
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(query)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          const displayName = data[0].display_name.split(',')[0];
+
+          currentAnchorPoint = { lat, lng, name: displayName };
+          
+          if (searchTargetMarker) map.removeLayer(searchTargetMarker);
+
+          searchTargetMarker = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'custom-pin',
+              html: `<div class="w-6 h-6 bg-blue-600 border-2 border-white rounded-full flex items-center justify-center text-white text-xs shadow-lg font-bold animate-bounce">📍</div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 24]
+            })
+          }).addTo(map);
+
+          searchTargetMarker.bindPopup(`<strong>Searched: ${displayName}</strong><br><span class="text-xs text-slate-500">Ranking nearest facilities...</span>`).openPopup();
+          
+          map.flyTo([lat, lng], 10, { duration: 1.5 });
+          statusText.textContent = `Showing nearest options to "${displayName}"`;
+
+          applyFilters();
+        } else {
+          // Direct fallback to string matching if geocoding returns empty
+          applyFilters();
+          statusText.textContent = `Filtered by text match: "${query}"`;
+        }
+      } catch (err) {
+        console.error("Geocoding failed, falling back to text search", err);
+        applyFilters();
+      }
+    }
+
     function applyFilters() {
       const q = document.getElementById('search-input').value.toLowerCase().trim();
       const zone = document.getElementById('zone-filter').value;
       const tier = document.getElementById('tier-filter').value;
 
-      const filtered = allFacilities.filter(f => {
+      let filtered = allFacilities.map(f => {
+        let copy = { ...f };
+        if (currentAnchorPoint) {
+          copy.distanceKm = calculateDistanceKm(currentAnchorPoint.lat, currentAnchorPoint.lng, f.coordinates.lat, f.coordinates.lng);
+        } else {
+          delete copy.distanceKm;
+        }
+        return copy;
+      });
+
+      filtered = filtered.filter(f => {
+        const matchesZone = !zone || f.zone === zone;
+        const matchesTier = !tier || f.tier === tier;
+
+        if (currentAnchorPoint) {
+          return matchesZone && matchesTier;
+        }
+
         const matchesQuery = !q || 
           (f.name && f.name.toLowerCase().includes(q)) ||
           (f.address?.state && f.address.state.toLowerCase().includes(q)) ||
           (f.address?.district && f.address.district.toLowerCase().includes(q)) ||
           (f.address?.pincode && f.address.pincode.includes(q));
 
-        const matchesZone = !zone || f.zone === zone;
-        const matchesTier = !tier || f.tier === tier;
-
         return matchesQuery && matchesZone && matchesTier;
       });
+
+      // Sort by proximity if a location anchor is active
+      if (currentAnchorPoint) {
+        filtered.sort((a, b) => a.distanceKm - b.distanceKm);
+      }
 
       renderFacilities(filtered);
     }
 
-    document.getElementById('search-input').addEventListener('input', applyFilters);
-    document.getElementById('zone-filter').addEventListener('change', applyFilters);
-    document.getElementById('tier-filter').addEventListener('change', applyFilters);
+    // Geolocation API (GPS)
+    document.getElementById('gps-btn').addEventListener('click', () => {
+      const banner = document.getElementById('status-banner');
+      const statusText = document.getElementById('status-text');
 
-    window.addEventListener('DOMContentLoaded', () => {
-      initMap();
-      loadData();
-    });
-  </script>
-</body>
-</html>
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      banner.classList.remove('hidden');
+      statusText.textContent = "Acquiring GPS location...";
+
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          currentAnchorPoint = { lat, l
