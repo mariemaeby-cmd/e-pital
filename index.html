@@ -1,422 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESIC-PATH • Medical Facilities Directory</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>e-pital | National ESI Healthcare Locator</title>
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    #map { height: calc(100vh - 72px); width: 100%; z-index: 10; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 </head>
-<body class="bg-[#f8fafc] text-slate-900 min-h-screen pb-12 antialiased">
+<body class="bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
 
-  <!-- Top App Navigation Bar -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-    <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
+  <!-- Top Navbar -->
+  <header class="h-[72px] bg-slate-900 text-white px-6 flex items-center justify-between border-b border-slate-800 shadow-sm">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center font-bold text-white text-lg">e</div>
       <div>
-        <h1 class="text-base font-extrabold tracking-tight text-slate-900 leading-tight">ESIC-PATH</h1>
-        <p class="text-[11px] text-slate-500 font-medium">P.A.T.H. — Portal for Access, Treatment & Healthcare</p>
+        <h1 class="text-lg font-bold tracking-tight leading-tight">e-pital</h1>
+        <p class="text-xs text-slate-400">National ESI Facility Directory & Triage</p>
       </div>
-      <a href="tel:1800112526" class="bg-[#991b1b] active:bg-[#7f1d1d] text-white px-3 py-2 rounded-lg text-center shadow-sm">
-        <div class="flex items-center gap-1.5 justify-center">
-          <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-          <span class="text-[10px] font-bold tracking-wider uppercase leading-none block">Emergency</span>
-        </div>
-        <span class="text-[9px] font-semibold text-red-100 uppercase tracking-widest block mt-0.5">Protocol</span>
-      </a>
     </div>
-
-    <!-- Navigation Sub-tabs -->
-    <div class="max-w-xl mx-auto px-4 flex gap-6 text-xs border-t border-slate-100 overflow-x-auto">
-      <button class="py-2.5 font-medium text-slate-500 hover:text-slate-900 whitespace-nowrap">SST Guidelines</button>
-      <button class="py-2.5 font-bold text-slate-900 border-b-2 border-slate-900 whitespace-nowrap">Hospital Directory</button>
-      <button class="py-2.5 font-medium text-slate-500 hover:text-slate-900 whitespace-nowrap">Statutory Benefits</button>
-      <button class="py-2.5 font-medium text-slate-500 hover:text-slate-900 whitespace-nowrap">Claim Status</button>
+    <div id="stats-counter" class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full text-slate-300 font-mono">
+      Loading facilities...
     </div>
   </header>
 
-  <main class="max-w-xl mx-auto px-4 py-4 space-y-4">
+  <div class="flex h-[calc(100vh-72px)]">
     
-    <!-- Directory Card & Filter Header -->
-    <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
-      <div>
-        <h2 class="text-base font-bold text-slate-900">Medical Facilities Directory</h2>
-        <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">
-          Search ESIC Medical Colleges, State ESIS Hospitals, and Empanelled Super Specialty Centers.
-        </p>
+    <!-- Sidebar / Filters -->
+    <aside class="w-full md:w-96 bg-white border-r border-slate-200 flex flex-col z-20 shadow-md">
+      
+      <!-- Search & Controls -->
+      <div class="p-4 border-b border-slate-100 space-y-3 bg-slate-50/50">
+        <div>
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search by facility name, state, or district..."
+            class="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <select id="zone-filter" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="">All Zones</option>
+            <option value="NORTH">North</option>
+            <option value="SOUTH">South</option>
+            <option value="EAST">East</option>
+            <option value="WEST">West</option>
+            <option value="CENTRAL">Central</option>
+            <option value="NORTH_EAST">North-East</option>
+          </select>
+
+          <select id="tier-filter" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="">All Tiers</option>
+            <option value="PRIMARY">Primary (Dispensary)</option>
+            <option value="SECONDARY">Secondary (Hospital)</option>
+            <option value="TERTIARY">Tertiary (Apex/MC)</option>
+            <option value="SUPER_SPECIALTY">Super Specialty</option>
+          </select>
+        </div>
       </div>
 
-      <!-- SST Quick Toggle -->
-      <button 
-        id="sst-toggle-btn"
-        onclick="toggleSSTOnly()"
-        class="w-full bg-white border border-slate-300 text-slate-700 py-2.5 rounded-xl text-xs font-semibold hover:bg-slate-50 active:bg-slate-100 transition flex items-center justify-center gap-2"
-      >
-        <span>Empanelled SST Hospitals Only</span>
-      </button>
-
-      <!-- Input: Hospital / Specialty -->
-      <div>
-        <input 
-          id="search-name"
-          type="text" 
-          placeholder="Search hospital name, department, or procedure..." 
-          class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
-          oninput="filterData()"
-        />
+      <!-- Facility List Results -->
+      <div id="facility-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 custom-scrollbar p-2 space-y-2">
+        <!-- Rendered items appear here -->
       </div>
+    </aside>
 
-      <!-- Input: City / State -->
-      <div>
-        <input 
-          id="search-location"
-          type="text" 
-          placeholder="Filter by City, State, or Area..." 
-          class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
-          oninput="filterData()"
-        />
-      </div>
-
-      <!-- Facility Type Dropdown -->
-      <div>
-        <select 
-          id="tier-select"
-          onchange="filterData()"
-          class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-slate-800"
-        >
-          <option value="ALL">All Facility Types</option>
-          <option value="TIER_3">ESIC / ESIS Tertiary & Apex Hospitals</option>
-          <option value="TIER_4">Empanelled SST Hospitals (Tie-Ups)</option>
-          <option value="TIER_1">Tier 1 Primary Dispensaries (DCBO)</option>
-        </select>
-      </div>
-    </section>
-
-    <!-- Counter -->
-    <div class="flex items-center justify-between px-1">
-      <span id="result-count" class="text-xs text-slate-500 font-semibold"></span>
-      <span class="text-[11px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">Sec 59(1) Active</span>
-    </div>
-
-    <!-- Facility Results List -->
-    <div id="facility-list" class="space-y-3"></div>
-
-  </main>
+    <!-- Map Canvas -->
+    <main class="flex-1 relative">
+      <div id="map"></div>
+    </main>
+  </div>
 
   <script>
-    const facilities = [
-      {
-        id: "CENTRAL-ESIC-01",
-        name: "ESIC Medical College, PGIMSR & Tertiary Hospital, Kalaburagi (Gulbarga)",
-        category: "ESIC Medical College & PGIMSR Hospital",
-        tier: "TIER_3",
-        state: "Karnataka",
-        district: "Kalaburagi (Gulbarga)",
-        emergency: "08472-265555",
-        address: "Sedam Road, Central Medical Campus, Kalaburagi (Gulbarga), Karnataka",
-        specialties: ["Cardiology", "Nephrology & Dialysis", "ICU / Trauma 24x7", "General Surgery", "Pediatrics"],
-        isSST: false
-      },
-      {
-        id: "CENTRAL-ESIC-02",
-        name: "ESIC Model Hospital Rajajinagar",
-        category: "ESIC Model Apex Hospital",
-        tier: "TIER_3",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-23325130",
-        address: "Rajajinagar 2nd Block, Bengaluru, Karnataka - 560010",
-        specialties: ["Dialysis", "Burn Intensive Unit", "Medical Oncology", "Pediatrics", "Cardiology"],
-        isSST: false
-      },
-      {
-        id: "SST-APOLLO-01",
-        name: "Apollo Hospital Bannerghatta Road",
-        category: "Empanelled SST Center (Private)",
-        tier: "TIER_4",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "1066",
-        address: "154/11, Opp IIMB, Bannerghatta Road, Bengaluru - 560076",
-        specialties: ["Cashless SST", "Cardiac Bypass (CABG)", "Neurosurgery", "Organ Transplant", "Oncology"],
-        isSST: true
-      },
-      {
-        id: "SST-NARAYANA-01",
-        name: "Narayana Institute of Cardiac Sciences",
-        category: "Empanelled SST Center (Private)",
-        tier: "TIER_4",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-71222222",
-        address: "258/A, Bommasandra Industrial Area, Anekal Taluk, Bengaluru - 560099",
-        specialties: ["Cashless SST", "Interventional Cardiology", "Cardiothoracic Surgery", "Pediatric Cardiac Care"],
-        isSST: true
-      },
-      {
-        id: "CENTRAL-ESIC-03",
-        name: "ESIC Hospital Peenya",
-        category: "ESIC Secondary Care Hospital",
-        tier: "TIER_3",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-28394421",
-        address: "Plot No. 11, Peenya Industrial Area Phase 1, Bengaluru - 560058",
-        specialties: ["General Medicine", "Orthopedics", "Trauma", "Casualty"],
-        isSST: false
-      },
-      {
-        id: "DISP-KAR-01",
-        name: "ESIS Dispensary Bommasandra",
-        category: "Tier 1 Primary Dispensary",
-        tier: "TIER_1",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-27832210",
-        address: "Bommasandra Industrial Area, Hosur Road, Bengaluru - 560099",
-        specialties: ["Primary OPD", "Pharmacy Dispensation", "Stat Referral", "Maternal Care"],
-        isSST: false
-      },
-      {
-        id: "CENTRAL-ESIC-04",
-        name: "ESIC PGIMSR & Model Hospital Basaidarapur",
-        category: "ESIC Post Graduate Apex Hospital",
-        tier: "TIER_3",
-        state: "Delhi",
-        district: "New Delhi",
-        emergency: "011-25970800",
-        address: "Ring Road, Basaidarapur, New Delhi - 110015",
-        specialties: ["Super Specialty Blocks", "Trauma 24x7", "Dialysis", "Neurology", "Plastic Surgery"],
-        isSST: false
-      },
-      {
-        id: "SST-MAX-01",
-        name: "Max Super Speciality Hospital Saket",
-        category: "Empanelled SST Center (Private)",
-        tier: "TIER_4",
-        state: "Delhi",
-        district: "New Delhi",
-        emergency: "011-26515050",
-        address: "1, 2, Press Enclave Marg, Saket, New Delhi - 110017",
-        specialties: ["Cashless SST", "Surgical Oncology", "Bone Marrow Transplant", "Neurosurgery"],
-        isSST: true
-      },
-      {
-        id: "CENTRAL-ESIC-05",
-        name: "ESIC PGIMSR & Hospital Andheri",
-        category: "ESIC Apex Hospital",
-        tier: "TIER_3",
-        state: "Maharashtra",
-        district: "Mumbai",
-        emergency: "022-28367203",
-        address: "MIDC Central Road, Andheri East, Mumbai - 400093",
-        specialties: ["ICU", "NICU", "Emergency 24x7", "Cardiology", "Urology"],
-        isSST: false
-      },
-      {
-        id: "STATE-ESIS-01",
-        name: "ESIS Hospital Worli",
-        category: "State ESIS Hospital",
-        tier: "TIER_3",
-        state: "Maharashtra",
-        district: "Mumbai",
-        emergency: "022-24933142",
-        address: "Ganpatrao Kadam Marg, Lower Parel, Mumbai - 400013",
-        specialties: ["General Surgery", "Trauma Care", "Orthopedics", "General Medicine"],
-        isSST: false
-      },
-      {
-        id: "SST-FORTIS-01",
-        name: "Fortis Hospital Mulund",
-        category: "Empanelled SST Center (Private)",
-        tier: "TIER_4",
-        state: "Maharashtra",
-        district: "Mumbai",
-        emergency: "022-43654365",
-        address: "Mulund Goregaon Link Road, Mulund West, Mumbai - 400078",
-        specialties: ["Cashless SST", "Heart Transplants", "Advanced Oncology", "Nephrology"],
-        isSST: true
-      },
-      {
-        id: "CENTRAL-ESIC-06",
-        name: "ESIC Medical College & Hospital Sanathnagar",
-        category: "ESIC Medical College & Hospital",
-        tier: "TIER_3",
-        state: "Telangana",
-        district: "Hyderabad",
-        emergency: "040-23701096",
-        address: "Sanathnagar, Hyderabad, Telangana - 500038",
-        specialties: ["Super Specialty Emergency", "Cardiology", "Medical Oncology", "Neurology", "Gastroenterology"],
-        isSST: false
-      },
-      {
-        id: "SST-YASHODA-01",
-        name: "Yashoda Hospitals Secunderabad",
-        category: "Empanelled SST Center (Private)",
-        tier: "TIER_4",
-        state: "Telangana",
-        district: "Hyderabad",
-        emergency: "040-45674567",
-        address: "Alexander Road, Secunderabad, Telangana - 500003",
-        specialties: ["Cashless SST", "Surgical Oncology", "Cardiology", "Liver Transplant"],
-        isSST: true
-      },
-      {
-        id: "CENTRAL-ESIC-07",
-        name: "ESIC Medical College & Hospital KK Nagar",
-        category: "ESIC Medical College & Hospital",
-        tier: "TIER_3",
-        state: "Tamil Nadu",
-        district: "Chennai",
-        emergency: "044-24748959",
-        address: "Ashok Pillar Road, KK Nagar, Chennai, Tamil Nadu - 600078",
-        specialties: ["Emergency 24x7", "Polytrauma", "Dialysis", "Cardiothoracic Surgery", "NICU"],
-        isSST: false
-      },
-      {
-        id: "SST-MIOT-01",
-        name: "MIOT International",
-        category: "Empanelled SST Center (Private)",
-        tier: "TIER_4",
-        state: "Tamil Nadu",
-        district: "Chennai",
-        emergency: "044-42002288",
-        address: "4/112, Mount Poonamallee Road, Manapakkam, Chennai - 600089",
-        specialties: ["Cashless SST", "Joint Replacement", "Spine Surgery", "Vascular Surgery", "Oncology"],
-        isSST: true
-      },
-      {
-        id: "CENTRAL-ESIC-08",
-        name: "ESIC PGIMSR & Medical College Joka",
-        category: "ESIC Medical College & Hospital",
-        tier: "TIER_3",
-        state: "West Bengal",
-        district: "Kolkata",
-        emergency: "033-24672799",
-        address: "Diamond Harbour Road, Joka, Kolkata, West Bengal - 700104",
-        specialties: ["Emergency 24x7", "Cardiology", "Nephrology", "Critical Care", "Neurology"],
-        isSST: false
-      },
-      {
-        id: "SST-MEDICA-01",
-        name: "Medica Superspecialty Hospital",
-        category: "Empanelled SST Center (Private)",
-        tier: "TIER_4",
-        state: "West Bengal",
-        district: "Kolkata",
-        emergency: "033-66520000",
-        address: "127 Mukundapur, E.M. Bypass, Kolkata, West Bengal - 700099",
-        specialties: ["Cashless SST", "Heart Valve Surgery", "Neurotrauma", "Dialysis", "Organ Transplant"],
-        isSST: true
-      },
-      {
-        id: "CENTRAL-ESIC-09",
-        name: "ESIC Model Hospital Beltola",
-        category: "ESIC Model Apex Hospital",
-        tier: "TIER_3",
-        state: "Assam",
-        district: "Guwahati",
-        emergency: "0361-2361082",
-        address: "Beltola, Guwahati, Assam - 781028",
-        specialties: ["Emergency 24x7", "ICU", "General Surgery", "Cardiology", "Dialysis"],
-        isSST: false
-      }
-    ];
+    let map;
+    let markersLayer = L.layerGroup();
+    let allFacilities = [];
 
-    let sstOnly = false;
+    // Initialize Map centered on India
+    function initMap() {
+      map = L.map('map', { zoomControl: false }).setView([22.5937, 78.9629], 5);
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    function toggleSSTOnly() {
-      sstOnly = !sstOnly;
-      const btn = document.getElementById('sst-toggle-btn');
-      if (sstOnly) {
-        btn.className = "w-full bg-slate-900 border border-slate-900 text-white py-2.5 rounded-xl text-xs font-semibold shadow-sm flex items-center justify-center gap-2";
-      } else {
-        btn.className = "w-full bg-white border border-slate-300 text-slate-700 py-2.5 rounded-xl text-xs font-semibold hover:bg-slate-50 transition flex items-center justify-center gap-2";
-      }
-      filterData();
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      markersLayer.addTo(map);
     }
 
-    function filterData() {
-      const qName = document.getElementById('search-name').value.toLowerCase().trim();
-      const qLoc = document.getElementById('search-location').value.toLowerCase().trim();
-      const tierVal = document.getElementById('tier-select').value;
-      const list = document.getElementById('facility-list');
-      list.innerHTML = '';
+    // Load data/facilities.json or root facilities.json
+    async function loadData() {
+      const statsCounter = document.getElementById('stats-counter');
+      try {
+        let res = await fetch('data/facilities.json');
+        if (!res.ok) res = await fetch('facilities.json');
+        if (!res.ok) throw new Error('Data file not found');
 
-      const filtered = facilities.filter(f => {
-        if (sstOnly && !f.isSST) return false;
-        if (tierVal !== 'ALL' && f.tier !== tierVal) return false;
+        allFacilities = await res.json();
+        statsCounter.textContent = `${allFacilities.length.toLocaleString()} Facilities Active`;
+        renderFacilities(allFacilities);
+      } catch (err) {
+        console.error('Error loading dataset:', err);
+        statsCounter.textContent = 'Failed to load dataset';
+        document.getElementById('facility-list').innerHTML = `
+          <div class="p-4 text-center text-xs text-rose-600 bg-rose-50 rounded-lg border border-rose-200 m-2">
+            Could not load facilities.json. Ensure it exists at <code>/data/facilities.json</code> or <code>/facilities.json</code>.
+          </div>`;
+      }
+    }
 
-        const matchesName = !qName || 
-          f.name.toLowerCase().includes(qName) || 
-          f.category.toLowerCase().includes(qName) ||
-          f.specialties.some(s => s.toLowerCase().includes(qName));
+    // Render markers on map and card list
+    function renderFacilities(list) {
+      markersLayer.clearLayers();
+      const listContainer = document.getElementById('facility-list');
+      listContainer.innerHTML = '';
 
-        const matchesLoc = !qLoc || 
-          f.district.toLowerCase().includes(qLoc) || 
-          f.state.toLowerCase().includes(qLoc) || 
-          f.address.toLowerCase().includes(qLoc);
-
-        return matchesName && matchesLoc;
-      });
-
-      document.getElementById('result-count').innerText = `Showing ${filtered.length} Facilities`;
-
-      if (filtered.length === 0) {
-        list.innerHTML = `
-          <div class="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500 text-xs">
-            No medical facilities match your criteria.
-          </div>
-        `;
+      if (list.length === 0) {
+        listContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">No matching facilities found.</div>`;
         return;
       }
 
-      filtered.forEach(f => {
+      // Cap map marker rendering to 500 at a time for smooth UI performance
+      const renderLimit = list.slice(0, 500);
+
+      renderLimit.forEach(f => {
+        if (f.coordinates && f.coordinates.lat && f.coordinates.lng) {
+          const marker = L.circleMarker([f.coordinates.lat, f.coordinates.lng], {
+            radius: f.tier === 'TERTIARY' ? 7 : 5,
+            fillColor: f.tier === 'TERTIARY' ? '#ef4444' : f.tier === 'SECONDARY' ? '#f59e0b' : '#10b981',
+            color: '#ffffff',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0.85
+          });
+
+          marker.bindPopup(`
+            <div class="text-xs p-1">
+              <strong class="text-slate-900 block font-semibold text-sm mb-1">${f.name}</strong>
+              <div class="text-slate-600 mb-1">${f.address ? `${f.address.street || ''}, ${f.address.district || ''}` : ''}</div>
+              <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10pt] font-semibold">${f.tier}</span>
+            </div>
+          `);
+
+          markersLayer.addLayer(marker);
+        }
+
+        // List item card
         const card = document.createElement('div');
-        card.className = "bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2.5";
+        card.className = "p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg cursor-pointer transition shadow-xs";
         card.innerHTML = `
-          <div class="flex items-start justify-between gap-2">
-            <span class="text-[11px] font-medium bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200/60">
-              ${f.category}
-            </span>
-            <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60 whitespace-nowrap">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> 24x7 Emergency
-            </span>
+          <div class="flex items-start justify-between">
+            <h2 class="text-xs font-semibold text-slate-800 leading-tight mb-1">${f.name}</h2>
           </div>
-
-          <div>
-            <h3 class="text-sm font-bold text-slate-900 leading-snug flex items-center gap-1">
-              ${f.name}
-              <span class="text-slate-400 font-normal">→</span>
-            </h3>
-            <p class="text-xs text-slate-500 mt-1 flex items-start gap-1">
-              <span>📍</span> <span>${f.address}</span>
-            </p>
-          </div>
-
-          <div class="flex flex-wrap gap-1 pt-0.5">
-            ${f.specialties.map(s => `
-              <span class="text-[10px] font-medium bg-slate-50 text-slate-600 border border-slate-200 px-2 py-0.5 rounded">
-                ${s}
-              </span>
-            `).join('')}
-          </div>
-
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span class="text-[11px] text-slate-400 font-mono">ID: ${f.id}</span>
-            <a href="tel:${f.emergency}" class="font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
-              📞 Call ${f.emergency}
-            </a>
+          <p class="text-[11px] text-slate-500 mb-2">${f.address?.district || ''}, ${f.address?.state || ''}</p>
+          <div class="flex items-center space-x-1">
+            <span class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 border border-slate-200">${f.tier}</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded border border-emerald-200">${f.administration}</span>
           </div>
         `;
-        list.appendChild(card);
+
+        card.addEventListener('click', () => {
+          if (f.coordinates?.lat && f.coordinates?.lng) {
+            map.flyTo([f.coordinates.lat, f.coordinates.lng], 13, { duration: 1.5 });
+          }
+        });
+
+        listContainer.appendChild(card);
       });
     }
 
-    filterData();
+    // Filter Handlers
+    function applyFilters() {
+      const q = document.getElementById('search-input').value.toLowerCase().trim();
+      const zone = document.getElementById('zone-filter').value;
+      const tier = document.getElementById('tier-filter').value;
+
+      const filtered = allFacilities.filter(f => {
+        const matchesQuery = !q || 
+          f.name.toLowerCase().includes(q) ||
+          (f.address?.state && f.address.state.toLowerCase().includes(q)) ||
+          (f.address?.district && f.address.district.toLowerCase().includes(q));
+
+        const matchesZone = !zone || f.zone === zone;
+        const matchesTier = !tier || f.tier === tier;
+
+        return matchesQuery && matchesZone && matchesTier;
+      });
+
+      renderFacilities(filtered);
+    }
+
+    document.getElementById('search-input').addEventListener('input', applyFilters);
+    document.getElementById('zone-filter').addEventListener('change', applyFilters);
+    document.getElementById('tier-filter').addEventListener('change', applyFilters);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      loadData();
+    });
   </script>
 </body>
 </html>
