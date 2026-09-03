@@ -3,322 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-pital • National ESIC/ESIS Health Directory</title>
+  <title>E-pital • Pan-India ESIC/ESIS Health Directory</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 font-sans">
   <div class="max-w-md mx-auto space-y-4">
+    
+    <!-- Header -->
     <header class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
       <div class="flex items-center justify-between">
         <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">E-pital</h1>
         <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium">Sec 59(1) Active</span>
       </div>
-      <p class="text-xs text-slate-400 mt-1">Pan-India ESIC, ESIS & Empanelled SST Network</p>
+      <p class="text-xs text-slate-400 mt-1">Pan-India ESIC, ESIS & Empanelled SST Directory</p>
     </header>
 
-    <input 
-      id="search"
-      type="text" 
-      placeholder="Search hospital, district, state, specialty..." 
-      class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
-      oninput="filterData()"
-    />
-
-    <div class="flex gap-2 overflow-x-auto pb-1 text-xs">
-      <button onclick="setTier('ALL')" id="tab-ALL" class="tier-tab bg-blue-600 text-white px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">All Tiers</button>
-      <button onclick="setTier('TIER_1')" id="tab-TIER_1" class="tier-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">Dispensaries</button>
-      <button onclick="setTier('TIER_3')" id="tab-TIER_3" class="tier-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">Apex / ESIC</button>
-      <button onclick="setTier('TIER_4')" id="tab-TIER_4" class="tier-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">Empanelled SST</button>
+    <!-- Search Input -->
+    <div>
+      <input 
+        id="search"
+        type="text" 
+        placeholder="Search hospital, zone, state, specialty..." 
+        class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+        oninput="filterData()"
+      />
     </div>
 
-    <div id="facility-list" class="space-y-3"></div>
+    <!-- Zone Filter Pills -->
+    <div>
+      <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold px-1">Zones</span>
+      <div class="flex gap-2 overflow-x-auto pb-1 mt-1 text-xs">
+        <button onclick="setZone('ALL')" id="zone-ALL" class="zone-tab bg-blue-600 text-white px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">All Zones</button>
+        <button onclick="setZone('South')" id="zone-South" class="zone-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">South</button>
+        <button onclick="setZone('North')" id="zone-North" class="zone-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">North</button>
+        <button onclick="setZone('West')" id="zone-West" class="zone-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">West</button>
+        <button onclick="setZone('East')" id="zone-East" class="zone-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">East</button>
+        <button onclick="setZone('Central India')" id="zone-Central India" class="zone-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">Central</button>
+        <button onclick="setZone('North East')" id="zone-North East" class="zone-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">North East</button>
+      </div>
+    </div>
+
+    <!-- Tier Filter Tabs -->
+    <div>
+      <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold px-1">Facility Tiers</span>
+      <div class="flex gap-2 overflow-x-auto pb-1 mt-1 text-xs">
+        <button onclick="setTier('ALL')" id="tab-ALL" class="tier-tab bg-blue-600 text-white px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">All Tiers</button>
+        <button onclick="setTier('TIER_1')" id="tab-TIER_1" class="tier-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">Tier 1 • Dispensaries</button>
+        <button onclick="setTier('TIER_3')" id="tab-TIER_3" class="tier-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">Tier 3 • Apex / ESIC</button>
+        <button onclick="setTier('TIER_4')" id="tab-TIER_4" class="tier-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium">Tier 4 • Empanelled SST</button>
+      </div>
+    </div>
+
+    <!-- Live Counter -->
+    <div id="result-count" class="text-xs text-slate-400 px-1 font-medium"></div>
+
+    <!-- Facility Cards -->
+    <div id="facility-list" class="space-y-3">
+      <div class="text-center py-8 text-slate-500 text-sm">Loading directory...</div>
+    </div>
+
   </div>
 
   <script>
-    const facilities = [
-      {
-        name: "ESIC Medical College & Hospital Kalaburagi",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "Karnataka",
-        district: "Kalaburagi",
-        emergency: "08472-265555",
-        address: "Sedam Road, Kalaburagi - 585106",
-        specialties: ["Emergency 24x7", "ICU", "Cardiology", "Nephrology", "General Surgery"]
-      },
-      {
-        name: "ESIC Model Hospital Rajajinagar",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-23325130",
-        address: "Rajajinagar 2nd Block, Bengaluru - 560010",
-        specialties: ["Dialysis", "Burn Unit", "Pediatrics", "Cardiology", "Oncology"]
-      },
-      {
-        name: "ESIC Hospital Peenya",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-28394421",
-        address: "Plot No. 11, Peenya Industrial Area Phase 1 - 560058",
-        specialties: ["General Medicine", "Orthopedics", "Trauma", "Casualty"]
-      },
-      {
-        name: "ESIS Dispensary Bommasandra",
-        tier: "TIER_1",
-        tierLabel: "Tier 1 • Primary Dispensary",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-27832210",
-        address: "Bommasandra Industrial Area, Hosur Road - 560099",
-        specialties: ["OPD", "Pharmacy", "Stat Referral", "Maternal Care"]
-      },
-      {
-        name: "ESIS Dispensary Whitefield",
-        tier: "TIER_1",
-        tierLabel: "Tier 1 • Primary Dispensary",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-28452300",
-        address: "Near ITPL, Whitefield Main Road - 560066",
-        specialties: ["OPD", "Pharmacy", "Minor OT"]
-      },
-      {
-        name: "Apollo Hospital Bannerghatta Road (SST Tie-Up)",
-        tier: "TIER_4",
-        tierLabel: "Tier 4 • Empanelled SST",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "1066",
-        address: "154/11, Opp IIMB, Bannerghatta Road - 560076",
-        specialties: ["Cashless SST", "Cardiac Bypass (CABG)", "Neurosurgery", "Organ Transplant"]
-      },
-      {
-        name: "Narayana Institute of Cardiac Sciences (SST Tie-Up)",
-        tier: "TIER_4",
-        tierLabel: "Tier 4 • Empanelled SST",
-        state: "Karnataka",
-        district: "Bengaluru",
-        emergency: "080-71222222",
-        address: "258/A, Bommasandra Industrial Area, Anekal Taluk - 560099",
-        specialties: ["Cashless SST", "Interventional Cardiology", "Cardiothoracic Surgery", "Pediatric Cardiology"]
-      },
-      {
-        name: "ESIC PGIMSR & Model Hospital Basaidarapur",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "Delhi",
-        district: "West Delhi",
-        emergency: "011-25970800",
-        address: "Ring Road, Basaidarapur, New Delhi - 110015",
-        specialties: ["Super Specialty Blocks", "Trauma 24x7", "Dialysis", "Neurology", "Plastic Surgery"]
-      },
-      {
-        name: "ESIC Hospital Okhla",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "Delhi",
-        district: "South East Delhi",
-        emergency: "011-26814161",
-        address: "Sri Maa Anandmayee Marg, Okhla Phase 1 - 110020",
-        specialties: ["Emergency", "Orthopedics", "Pulmonology", "Radiology"]
-      },
-      {
-        name: "ESIS Dispensary Mayapuri",
-        tier: "TIER_1",
-        tierLabel: "Tier 1 • Primary Dispensary",
-        state: "Delhi",
-        district: "West Delhi",
-        emergency: "011-28114532",
-        address: "Phase 2, Mayapuri Industrial Area - 110064",
-        specialties: ["Primary OPD", "Diagnostic Lab", "Referral desk"]
-      },
-      {
-        name: "Max Super Speciality Hospital Saket (SST Tie-Up)",
-        tier: "TIER_4",
-        tierLabel: "Tier 4 • Empanelled SST",
-        state: "Delhi",
-        district: "South Delhi",
-        emergency: "011-26515050",
-        address: "1, 2, Press Enclave Marg, Saket - 110017",
-        specialties: ["Cashless SST", "Oncology", "Bone Marrow Transplant", "Neurosurgery"]
-      },
-      {
-        name: "ESIC PGIMSR & Hospital Andheri",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "Maharashtra",
-        district: "Mumbai Suburban",
-        emergency: "022-28367203",
-        address: "MIDC Central Road, Andheri East, Mumbai - 400093",
-        specialties: ["ICU", "NICU", "Emergency 24x7", "Cardiology", "Urology"]
-      },
-      {
-        name: "ESIS Hospital Worli",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • State ESIS",
-        state: "Maharashtra",
-        district: "Mumbai City",
-        emergency: "022-24933142",
-        address: "Ganpatrao Kadam Marg, Lower Parel, Mumbai - 400013",
-        specialties: ["General Surgery", "Trauma Care", "Orthopedics", "General Medicine"]
-      },
-      {
-        name: "ESIS Hospital Mulund",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • State ESIS",
-        state: "Maharashtra",
-        district: "Mumbai Suburban",
-        emergency: "022-25645555",
-        address: "LBS Marg, Mulund West, Mumbai - 400080",
-        specialties: ["Emergency", "Pediatrics", "Ophthalmology", "ENT"]
-      },
-      {
-        name: "ESIS Dispensary Thane West",
-        tier: "TIER_1",
-        tierLabel: "Tier 1 • Primary Dispensary",
-        state: "Maharashtra",
-        district: "Thane",
-        emergency: "022-25421100",
-        address: "Wagle Estate, Road No. 16, Thane West - 400604",
-        specialties: ["OPD", "Pharmacy", "Stat Referrals"]
-      },
-      {
-        name: "Fortis Hospital Mulund (SST Tie-Up)",
-        tier: "TIER_4",
-        tierLabel: "Tier 4 • Empanelled SST",
-        state: "Maharashtra",
-        district: "Mumbai Suburban",
-        emergency: "022-43654365",
-        address: "Mulund Goregaon Link Road, Mulund West - 400078",
-        specialties: ["Cashless SST", "Heart Transplants", "Advanced Oncology", "Nephrology"]
-      },
-      {
-        name: "ESIC Medical College & Hospital Sanathnagar",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "Telangana",
-        district: "Hyderabad",
-        emergency: "040-23701096",
-        address: "Sanathnagar, Hyderabad - 500038",
-        specialties: ["Super Specialty Emergency", "Cardiology", "Medical Oncology", "Neurology", "Gastroenterology"]
-      },
-      {
-        name: "ESIS Hospital Nacharam",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • State ESIS",
-        state: "Telangana",
-        district: "Medchal-Malkajgiri",
-        emergency: "040-27153245",
-        address: "Nacharam Industrial Area, Hyderabad - 500076",
-        specialties: ["Casualty", "General Medicine", "Orthopedics", "Labor & Delivery"]
-      },
-      {
-        name: "ESIS Dispensary Kattedan",
-        tier: "TIER_1",
-        tierLabel: "Tier 1 • Primary Dispensary",
-        state: "Telangana",
-        district: "Rangareddy",
-        emergency: "040-24361020",
-        address: "Industrial Area, Kattedan - 500077",
-        specialties: ["OPD", "Pharmacy", "Preventive Care"]
-      },
-      {
-        name: "Yashoda Hospitals Secunderabad (SST Tie-Up)",
-        tier: "TIER_4",
-        tierLabel: "Tier 4 • Empanelled SST",
-        state: "Telangana",
-        district: "Hyderabad",
-        emergency: "040-45674567",
-        address: "Alexander Road, Secunderabad - 500003",
-        specialties: ["Cashless SST", "Surgical Oncology", "Cardiology", "Liver Transplant"]
-      },
-      {
-        name: "ESIC Medical College & Hospital KK Nagar",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "Tamil Nadu",
-        district: "Chennai",
-        emergency: "044-24748959",
-        address: "Ashok Pillar Road, KK Nagar, Chennai - 600078",
-        specialties: ["Emergency 24x7", "Polytrauma", "Dialysis", "Cardiothoracic Surgery", "NICU"]
-      },
-      {
-        name: "ESIS Hospital Ayanavaram",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • State ESIS",
-        state: "Tamil Nadu",
-        district: "Chennai",
-        emergency: "044-26741234",
-        address: "Konnor High Road, Ayanavaram, Chennai - 600023",
-        specialties: ["General Surgery", "Obstetrics & Gynaecology", "General OPD"]
-      },
-      {
-        name: "ESIS Dispensary Ambattur",
-        tier: "TIER_1",
-        tierLabel: "Tier 1 • Primary Dispensary",
-        state: "Tamil Nadu",
-        district: "Chennai",
-        emergency: "044-26251209",
-        address: "Ambattur Industrial Estate, Chennai - 600058",
-        specialties: ["Primary Care", "Diagnostic Tests", "Stat Referral"]
-      },
-      {
-        name: "MIOT International (SST Tie-Up)",
-        tier: "TIER_4",
-        tierLabel: "Tier 4 • Empanelled SST",
-        state: "Tamil Nadu",
-        district: "Chennai",
-        emergency: "044-42002288",
-        address: "4/112, Mount Poonamallee Road, Manapakkam - 600089",
-        specialties: ["Cashless SST", "Joint Replacement", "Spine Surgery", "Vascular Surgery", "Oncology"]
-      },
-      {
-        name: "ESIC PGIMSR & Medical College Joka",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • Central Apex",
-        state: "West Bengal",
-        district: "Kolkata",
-        emergency: "033-24672799",
-        address: "Diamond Harbour Road, Joka, Kolkata - 700104",
-        specialties: ["Emergency 24x7", "Cardiology", "Nephrology", "Critical Care", "Neurology"]
-      },
-      {
-        name: "ESIS Hospital Manicktala",
-        tier: "TIER_3",
-        tierLabel: "Tier 3 • State ESIS",
-        state: "West Bengal",
-        district: "Kolkata",
-        emergency: "033-23547890",
-        address: "5 Bagmari Road, Manicktala, Kolkata - 700054",
-        specialties: ["General Surgery", "Orthopedics", "Chest Medicine", "Casualty"]
-      },
-      {
-        name: "ESIS Dispensary Howrah",
-        tier: "TIER_1",
-        tierLabel: "Tier 1 • Primary Dispensary",
-        state: "West Bengal",
-        district: "Howrah",
-        emergency: "033-26661245",
-        address: "Baltikuri Industrial Estate, Howrah - 711113",
-        specialties: ["Primary OPD", "Pharmacy Dispensation", "Routine Health Check"]
-      },
-      {
-        name: "Medica Superspecialty Hospital (SST Tie-Up)",
-        tier: "TIER_4",
-        tierLabel: "Tier 4 • Empanelled SST",
-        state: "West Bengal",
-        district: "Kolkata",
-        emergency: "033-66520000",
-        address: "127 Mukundapur, E.M. Bypass, Kolkata - 700099",
-        specialties: ["Cashless SST", "Heart Valve Surgery", "Neurotrauma", "Dialysis", "Organ Transplant"]
-      }
-    ];
-
+    let facilities = [];
     let currentTier = 'ALL';
+    let currentZone = 'ALL';
+
+    fetch('data/facilities.json')
+      .then(res => res.json())
+      .then(data => {
+        facilities = data;
+        filterData();
+      })
+      .catch(() => {
+        document.getElementById('facility-list').innerHTML = `
+          <div class="text-center py-8 text-red-400 text-sm">Error loading facilities. Ensure data/facilities.json exists.</div>
+        `;
+      });
 
     function setTier(tier) {
       currentTier = tier;
@@ -329,6 +90,15 @@
       filterData();
     }
 
+    function setZone(zone) {
+      currentZone = zone;
+      document.querySelectorAll('.zone-tab').forEach(tab => {
+        tab.className = 'zone-tab bg-slate-900 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg whitespace-nowrap font-medium';
+      });
+      document.getElementById(`zone-${zone}`).className = 'zone-tab bg-blue-600 text-white px-3 py-1.5 rounded-lg whitespace-nowrap font-medium';
+      filterData();
+    }
+
     function filterData() {
       const q = document.getElementById('search').value.toLowerCase();
       const list = document.getElementById('facility-list');
@@ -336,15 +106,19 @@
 
       const filtered = facilities.filter(f => {
         const matchesTier = (currentTier === 'ALL' || f.tier === currentTier);
-        const matchesQuery = f.name.toLowerCase().includes(q) || 
-                             f.district.toLowerCase().includes(q) || 
-                             f.state.toLowerCase().includes(q) ||
-                             f.specialties.some(s => s.toLowerCase().includes(q));
-        return matchesTier && matchesQuery;
+        const matchesZone = (currentZone === 'ALL' || f.zone === currentZone);
+        const matchesQuery = (f.name && f.name.toLowerCase().includes(q)) || 
+                             (f.district && f.district.toLowerCase().includes(q)) || 
+                             (f.state && f.state.toLowerCase().includes(q)) ||
+                             (f.zone && f.zone.toLowerCase().includes(q)) ||
+                             (f.specialties && f.specialties.some(s => s.toLowerCase().includes(q)));
+        return matchesTier && matchesZone && matchesQuery;
       });
 
+      document.getElementById('result-count').innerText = `Showing ${filtered.length} facilities`;
+
       if (filtered.length === 0) {
-        list.innerHTML = `<div class="text-center py-8 text-slate-500 text-sm">No facilities match your search.</div>`;
+        list.innerHTML = `<div class="text-center py-8 text-slate-500 text-sm">No facilities found for this zone or search query.</div>`;
         return;
       }
 
@@ -353,25 +127,27 @@
         card.className = "bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 shadow-sm";
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
-            <h3 class="text-sm font-semibold text-slate-100">${f.name}</h3>
+            <div>
+              <h3 class="text-sm font-semibold text-slate-100">${f.name}</h3>
+              <span class="text-[10px] text-indigo-400 font-medium">${f.zone} Zone • ${f.state}</span>
+            </div>
             <span class="text-[10px] bg-slate-800 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-md whitespace-nowrap">${f.tierLabel}</span>
           </div>
           <p class="text-xs text-slate-400">${f.address}</p>
           <div class="flex flex-wrap gap-1 pt-1">
-            ${f.specialties.map(s => `<span class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">${s}</span>`).join('')}
+            ${(f.specialties || []).map(s => `<span class="text-[10px] bg-slate-800/90 text-slate-300 px-1.5 py-0.5 rounded">${s}</span>`).join('')}
           </div>
           <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
             <a href="tel:${f.emergency}" class="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-lg font-medium">
               📞 ${f.emergency}
             </a>
-            <span class="text-[11px] text-slate-400">${f.district}, ${f.state}</span>
+            <span class="text-[11px] text-slate-400">${f.district}</span>
           </div>
         `;
         list.appendChild(card);
       });
     }
-
-    filterData();
   </script>
 </body>
 </html>
+
