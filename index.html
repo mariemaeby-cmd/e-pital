@@ -1,12 +1,19 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>e-pital | National ESI Healthcare Locator</title>
   
+  <!-- Leaflet Core -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
@@ -74,7 +81,8 @@
     <!-- Facility Cards Container -->
     <div id="facility-list" class="space-y-2.5"></div>
 
-  </main>  <script>
+  </main>
+    <script>
     window.addEventListener('DOMContentLoaded', async () => {
       const LOCAL_GEO = {
         "wadi": [17.0483, 76.9934, "Wadi Junction, Kalaburagi"],
@@ -108,8 +116,18 @@
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
+      // Marker Cluster Group with chunkedLoading for high-density rendering
+      const markersCluster = L.markerClusterGroup({
+        chunkedLoading: true,
+        chunkInterval: 50,
+        chunkDelay: 10,
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false
+      });
+      map.addLayer(markersCluster);
+
       let allFacilities = [];
-      let facilityMarkers = [];
       let searchPin = null;
 
       // Haversine Distance Formula
@@ -124,13 +142,13 @@
         return parseFloat((R * c).toFixed(1));
       }
 
-      // Fetch Verified Dataset
+      // Fetch & Ingest Dataset
       try {
         const res = await fetch('./data/facilities.json');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const rawData = await res.json();
 
-        // Standardize schema
+        // Standardize Schema
         allFacilities = rawData.map(item => ({
           name: item.name,
           lat: item.coordinates ? item.coordinates.lat : item.lat,
@@ -139,17 +157,19 @@
           state: item.address ? item.address.state : item.state,
           tier: item.tier || 'PRIMARY',
           phone: item.contact ? item.contact.phone : (item.phone || '')
-        }));
+        })).filter(f => !isNaN(f.lat) && !isNaN(f.lng) && f.lat !== 0 && f.lng !== 0);
 
         document.getElementById('stats-counter').textContent = `${allFacilities.length} Facilities Live`;
 
-        // Render Map Markers
-        allFacilities.forEach(f => {
-          const marker = L.marker([f.lat, f.lng])
-            .addTo(map)
+        // Create Marker Layer Array
+        const markerList = allFacilities.map(f => {
+          return L.marker([f.lat, f.lng])
             .bindPopup(`<b>${f.name}</b><br>${f.city}, ${f.state}`);
-          facilityMarkers.push(marker);
         });
+
+        // Add to cluster group in chunks
+        markersCluster.clearLayers();
+        markersCluster.addLayers(markerList);
 
       } catch (err) {
         console.error("Data load failed:", err);
@@ -196,7 +216,7 @@
           `;
 
           card.querySelector('h2').addEventListener('click', () => {
-            map.flyTo([f.lat, f.lng], 13, { duration: 0.8 });
+            map.flyTo([f.lat, f.lng], 14, { duration: 0.8 });
             window.scrollTo({ top: 0, behavior: 'smooth' });
           });
 
@@ -274,4 +294,3 @@
 </body>
 </html>
 
-  
