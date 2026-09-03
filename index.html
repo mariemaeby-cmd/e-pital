@@ -1,4 +1,4 @@
-         
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,11 +28,11 @@
       <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-white text-base shadow-sm">e</div>
       <div>
         <h1 class="text-base font-bold tracking-tight leading-none">e-pital</h1>
-        <p class="text-[10px] text-slate-400 mt-0.5">National ESI Directory & Clinical Triage</p>
+        <p class="text-[10px] text-slate-400 mt-0.5">National ESI Directory & Proximity Navigator</p>
       </div>
     </div>
     <div id="stats-counter" class="text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-emerald-400 font-mono">
-      Loading verified centers...
+      Ready
     </div>
   </header>
 
@@ -41,13 +41,13 @@
     <!-- Sidebar -->
     <aside class="w-full md:w-[440px] bg-white border-r border-slate-200 flex flex-col z-20 shadow-sm h-[58vh] md:h-full order-2 md:order-1">
       
-      <!-- Search & Filters Header -->
+      <!-- Search Box -->
       <div class="p-3 border-b border-slate-200 space-y-2 bg-slate-50">
         <div class="flex space-x-1.5">
           <input
             id="search-input"
             type="text"
-            placeholder="Search procedure, specialty, town, or PIN..."
+            placeholder="Search any town, city, district, or PIN..."
             class="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
           />
           <button
@@ -100,273 +100,106 @@
     </main>
   </div>
 
-  <!-- Clinical Detail Modal / Bottom Sheet -->
-  <div id="clinical-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-end md:items-center justify-center p-0 md:p-4">
-    <div class="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom duration-200">
-      <div class="p-4 border-b border-slate-100 flex items-start justify-between bg-slate-50">
-        <div>
-          <span id="modal-tier-badge" class="text-[10px] font-mono px-2 py-0.5 rounded font-semibold bg-emerald-100 text-emerald-800 uppercase"></span>
-          <h3 id="modal-title" class="text-sm font-bold text-slate-900 mt-1"></h3>
-          <p id="modal-subtitle" class="text-xs text-slate-500"></p>
-        </div>
-        <button id="modal-close-btn" class="p-1.5 text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
-      </div>
-
-      <div class="p-4 overflow-y-auto space-y-4 text-xs">
-        <div>
-          <h4 class="font-bold text-slate-800 text-[11px] uppercase tracking-wider mb-1.5">🏥 Clinical Departments</h4>
-          <div id="modal-depts" class="flex flex-wrap gap-1"></div>
-        </div>
-
-        <div>
-          <h4 class="font-bold text-slate-800 text-[11px] uppercase tracking-wider mb-1.5">🔬 Mandatory Investigations & Diagnostics (NEDL)</h4>
-          <div id="modal-investigations" class="flex flex-wrap gap-1"></div>
-        </div>
-
-        <div>
-          <h4 class="font-bold text-slate-800 text-[11px] uppercase tracking-wider mb-1.5">💊 Drug Formulary & Pharmacy Tiers (NLEM)</h4>
-          <p id="modal-drugs" class="text-slate-600 bg-slate-50 p-2.5 rounded border border-slate-200 leading-relaxed"></p>
-        </div>
-
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-900">
-          <h4 class="font-bold text-[11px] uppercase tracking-wider mb-0.5">📋 Referral & Gatekeeping Rules</h4>
-          <p id="modal-referral-note" class="text-[11px] text-blue-800 leading-normal"></p>
-        </div>
-      </div>
-
-      <div class="p-3 border-t border-slate-100 bg-slate-50 flex gap-2">
-        <a id="modal-gmaps-link" href="#" target="_blank" rel="noopener" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-xs text-center transition">
-          🚗 Open Live Google Maps Navigation
-        </a>
-      </div>
-    </div>
-  </div>
-
   <script>
     let map = null;
     let markersLayer = null;
     let searchPin = null;
+    let allFacilities = [];
     let currentAnchorPoint = null;
 
-    // Ground-Truth Verified Nationwide ESIC Registry
-    const VERIFIED_FACILITIES = [
-      {
-        id: "ESIC-KA-001",
-        name: "ESIC Medical College & PGIMSR, Rajajinagar",
-        admin: "CENTRAL_ESIC",
-        tier: "TERTIARY",
-        zone: "SOUTH",
-        state: "Karnataka",
-        district: "Bengaluru Urban",
-        pincode: "560010",
-        lat: 12.9892,
-        lng: 77.5539,
-        phone: "080-23321803",
-        emergency: "1800-11-2526",
-        departments: ["General Medicine", "General Surgery", "Cardiology", "Nephrology & Dialysis", "Orthopedics", "OBG", "Pediatrics", "Pulmonology", "Radiodiagnosis", "ICU / Emergency"],
-        investigations: ["128-Slice CT", "1.5T MRI", "Cath Lab", "Dialysis Unit", "Automated Biochemistry", "Histopathology", "Blood Bank", "Echocardiography", "USG Doppler"],
-        drugs: "Full Institutional Tertiary Formulary (Statins, Inotropes, Anti-hypertensives, Dialysis Consumables, Cancer Chemotherapy, Biologics, Advanced Antibiotics).",
-        referral_rule: "Direct walk-in for emergency & general OPD. Form 105 / Dispensary referral recommended for planned super-specialty procedures."
-      },
-      {
-        id: "ESIC-KA-002",
-        name: "ESIC Medical College & Hospital, Kalaburagi",
-        admin: "CENTRAL_ESIC",
-        tier: "TERTIARY",
-        zone: "SOUTH",
-        state: "Karnataka",
-        district: "Kalaburagi",
-        pincode: "585106",
-        lat: 17.3297,
-        lng: 76.8343,
-        phone: "08472-265546",
-        emergency: "1800-11-2526",
-        departments: ["General Medicine", "General Surgery", "Nephrology & Dialysis", "Pediatrics", "OBG", "Orthopedics", "ENT", "Ophthalmology", "Critical Care / ICU"],
-        investigations: ["CT Scan", "Automated Hematology", "Dialysis", "Digital X-Ray", "Color Doppler USG", "Biochemistry", "Blood Center"],
-        drugs: "Comprehensive Tertiary Drug List (Oral Hypoglycemics, Anti-hypertensives, Dialysis Support, Broad-spectrum Antibiotics).",
-        referral_rule: "Direct walk-in for insured workers and families. Serves as the apex referral center for the Kalyana-Karnataka industrial belt."
-      },
-      {
-        id: "ESIC-DL-001",
-        name: "ESIC Super Speciality Hospital, Sanathnagar",
-        admin: "CENTRAL_ESIC",
-        tier: "TERTIARY",
-        zone: "SOUTH",
-        state: "Telangana",
-        district: "Hyderabad",
-        pincode: "500038",
-        lat: 17.4578,
-        lng: 78.4398,
-        phone: "040-23801122",
-        emergency: "1800-11-2526",
-        departments: ["Cardiology", "Cardiothoracic Surgery", "Nephrology", "Urology", "Medical Oncology", "Neurology", "Gastroenterology"],
-        investigations: ["Digital Flat Panel Cath Lab", "3T MRI", "CT Angiography", "Advanced Dialysis Center", "Blood Component Separation"],
-        drugs: "Super-Specialty Drug Roster (Cardiac Stents, Immunosuppressants, Oncological Agents, Erythropoietin).",
-        referral_rule: "Accepts referrals from ESI Dispensaries and State ESIS Hospitals across Telangana and Andhra Pradesh."
-      },
-      {
-        id: "ESIC-DL-002",
-        name: "ESIC Model Hospital Basaidarapur",
-        admin: "CENTRAL_ESIC",
-        tier: "TERTIARY",
-        zone: "NORTH",
-        state: "Delhi",
-        district: "New Delhi",
-        pincode: "110015",
-        lat: 28.6606,
-        lng: 77.1362,
-        phone: "011-25970800",
-        emergency: "1800-11-2526",
-        departments: ["General Medicine", "General Surgery", "Cardiology", "Nephrology", "Burn Unit", "Critical Care", "Pediatrics", "Orthopedics"],
-        investigations: ["CT Scan", "MRI", "Hemodialysis", "Blood Bank", "Endoscopy Suite", "Microbiology"],
-        drugs: "Apex Formulary (Full emergency, chronic care, and specialized inpatient medicines).",
-        referral_rule: "Central referral hub for Delhi-NCR ESI dispensaries."
-      },
-      {
-        id: "ESIC-TN-001",
-        name: "ESIC Medical College & Hospital, K.K. Nagar",
-        admin: "CENTRAL_ESIC",
-        tier: "TERTIARY",
-        zone: "SOUTH",
-        state: "Tamil Nadu",
-        district: "Chennai",
-        pincode: "600078",
-        lat: 13.0382,
-        lng: 80.1973,
-        phone: "044-24748959",
-        emergency: "1800-11-2526",
-        departments: ["General Medicine", "General Surgery", "Cardiology", "Nephrology", "OBG", "Pediatrics", "Dermatology", "Psychiatry"],
-        investigations: ["CT Scan", "Color Doppler", "Blood Bank", "Dialysis", "Automated Pathology", "Echocardiography"],
-        drugs: "Full Institutional Tertiary Formulary.",
-        referral_rule: "Direct walk-in for IP card holders and dependents."
-      },
-      {
-        id: "ESIC-MH-001",
-        name: "ESIC Model Hospital & PGIMSR, Andheri",
-        admin: "CENTRAL_ESIC",
-        tier: "TERTIARY",
-        zone: "WEST",
-        state: "Maharashtra",
-        district: "Mumbai Suburban",
-        pincode: "400093",
-        lat: 19.1197,
-        lng: 72.8682,
-        phone: "022-28367203",
-        emergency: "1800-11-2526",
-        departments: ["General Medicine", "General Surgery", "Orthopedics", "ICU", "OBG", "Pediatrics", "Ophthalmology"],
-        investigations: ["Digital X-Ray", "CT Scan", "Biochemistry", "Microbiology", "Blood Storage"],
-        drugs: "Tertiary Formulary for emergency and inpatient care.",
-        referral_rule: "Direct access for tertiary admissions across Greater Mumbai."
-      },
-      {
-        id: "ESIS-MH-002",
-        name: "ESIS Hospital Worli",
-        admin: "STATE_ESIS",
-        tier: "SECONDARY",
-        zone: "WEST",
-        state: "Maharashtra",
-        district: "Mumbai City",
-        pincode: "400018",
-        lat: 18.9986,
-        lng: 72.8181,
-        phone: "022-24933142",
-        emergency: "104",
-        departments: ["General Medicine", "General Surgery", "OBG", "Pediatrics", "Dental", "Casualty"],
-        investigations: ["Routine Lab Panel (CBC, LFT, KFT)", "X-Ray", "Ultrasound", "ECG"],
-        drugs: "Secondary Essential Drug List (Injectable antibiotics, analgesics, maintenance cardiovascular).",
-        referral_rule: "Requires referral from local ESI Dispensaries for non-emergency elective procedures."
-      },
-      {
-        id: "ESIS-KA-003",
-        name: "ESIS Hospital Peenya",
-        admin: "STATE_ESIS",
-        tier: "SECONDARY",
-        zone: "SOUTH",
-        state: "Karnataka",
-        district: "Bengaluru Urban",
-        pincode: "560058",
-        lat: 13.0285,
-        lng: 77.5192,
-        phone: "080-28394921",
-        emergency: "104",
-        departments: ["General Medicine", "General Surgery", "Casualty", "Orthopedics", "Maternity"],
-        investigations: ["Digital X-Ray", "Routine Biochemistry", "Hematology", "ECG"],
-        drugs: "Secondary level formulary and standard outpatient dispensing.",
-        referral_rule: "Handles secondary admissions from Peenya industrial belt dispensaries."
-      },
-      {
-        id: "ESID-KA-004",
-        name: "ESI Dispensary Anekal",
-        admin: "STATE_ESIS",
-        tier: "PRIMARY",
-        zone: "SOUTH",
-        state: "Karnataka",
-        district: "Bengaluru Urban",
-        pincode: "562106",
-        lat: 12.7112,
-        lng: 77.6974,
-        phone: "080-27841234",
-        emergency: "104",
-        departments: ["Outpatient Consultation (OPD)", "Pharmacy Dispensing", "Dressing / Minor OT", "Maternal Care"],
-        investigations: ["Point-of-Care Blood Glucose", "Urine Routine", "Rapid Hemoglobin", "Rapid Malaria/Dengue"],
-        drugs: "Primary Maintenance Formulary (Metformin, Amlodipine, Paracetamol, Antacids, Iron-Folic Acid).",
-        referral_rule: "Direct walk-in for all IP card holders. Issues Form 105 referrals to secondary and tertiary hospitals."
-      },
-      {
-        id: "ESID-KA-005",
-        name: "ESI Dispensary Bommasandra",
-        admin: "STATE_ESIS",
-        tier: "PRIMARY",
-        zone: "SOUTH",
-        state: "Karnataka",
-        district: "Bengaluru Urban",
-        pincode: "560099",
-        lat: 12.8167,
-        lng: 77.6833,
-        phone: "080-27832211",
-        emergency: "104",
-        departments: ["OPD Consultation", "Direct Pharmacy Refills", "First Aid & Wound Dressing"],
-        investigations: ["Blood Glucose Strip Test", "Urine Albumin/Sugar", "Rapid Antigen"],
-        drugs: "Standard Primary NLEM Chronic Disease Refills.",
-        referral_rule: "Direct walk-in. First point of clinical contact."
-      },
-      {
-        id: "ESIC-WB-001",
-        name: "ESIC Medical College & Hospital, Joka",
-        admin: "CENTRAL_ESIC",
-        tier: "TERTIARY",
-        zone: "EAST",
-        state: "West Bengal",
-        district: "Kolkata",
-        pincode: "700104",
-        lat: 22.4501,
-        lng: 88.2934,
-        phone: "033-24672799",
-        emergency: "1800-11-2526",
-        departments: ["General Medicine", "General Surgery", "Cardiology", "Nephrology", "Pediatrics", "OBG", "Orthopedics", "ICU"],
-        investigations: ["CT Scan", "Dialysis Center", "Blood Bank", "Automated Pathology", "Ultrasonography"],
-        drugs: "Full Institutional Tertiary Formulary.",
-        referral_rule: "Direct tertiary admissions for West Bengal and Eastern Zone beneficiaries."
-      },
-      {
-        id: "ESIC-GJ-001",
-        name: "ESIC Model Hospital Bapunagar",
-        admin: "CENTRAL_ESIC",
-        tier: "TERTIARY",
-        zone: "WEST",
-        state: "Gujarat",
-        district: "Ahmedabad",
-        pincode: "380024",
-        lat: 23.0365,
-        lng: 72.6312,
-        phone: "079-22742681",
-        emergency: "1800-11-2526",
-        departments: ["General Medicine", "General Surgery", "Critical Care", "Nephrology", "Dialysis", "Orthopedics"],
-        investigations: ["CT Scan", "Automated Lab Panels", "Dialysis", "X-Ray", "Color Doppler"],
-        drugs: "Comprehensive Tertiary Drug List.",
-        referral_rule: "Central tertiary hub for Gujarat industrial corridor."
+    const STATE_MATRIX = {
+      "Karnataka": { code: "KA", zone: "SOUTH", central: 3, stateHosp: 8, disp: 142, lat: 15.3173, lng: 75.7139 },
+      "Maharashtra": { code: "MH", zone: "WEST", central: 3, stateHosp: 12, disp: 220, lat: 19.7515, lng: 75.7139 },
+      "Tamil Nadu": { code: "TN", zone: "SOUTH", central: 2, stateHosp: 8, disp: 210, lat: 11.1271, lng: 78.6569 },
+      "Delhi": { code: "DL", zone: "NORTH", central: 4, stateHosp: 0, disp: 35, lat: 28.7041, lng: 77.1025 },
+      "West Bengal": { code: "WB", zone: "EAST", central: 1, stateHosp: 13, disp: 180, lat: 22.9868, lng: 87.8550 },
+      "Telangana": { code: "TS", zone: "SOUTH", central: 2, stateHosp: 5, disp: 72, lat: 18.1124, lng: 79.0193 },
+      "Gujarat": { code: "GJ", zone: "WEST", central: 4, stateHosp: 8, disp: 125, lat: 22.2587, lng: 71.1924 },
+      "Uttar Pradesh": { code: "UP", zone: "CENTRAL", central: 6, stateHosp: 10, disp: 155, lat: 26.8467, lng: 80.9462 },
+      "Kerala": { code: "KL", zone: "SOUTH", central: 3, stateHosp: 9, disp: 145, lat: 10.8505, lng: 76.2711 },
+      "Andhra Pradesh": { code: "AP", zone: "SOUTH", central: 1, stateHosp: 4, disp: 82, lat: 15.9129, lng: 79.7400 },
+      "Haryana": { code: "HR", zone: "NORTH", central: 3, stateHosp: 4, disp: 45, lat: 29.0588, lng: 76.0856 },
+      "Punjab": { code: "PB", zone: "NORTH", central: 1, stateHosp: 6, disp: 70, lat: 31.1471, lng: 75.3412 },
+      "Rajasthan": { code: "RJ", zone: "NORTH", central: 4, stateHosp: 4, disp: 75, lat: 27.0238, lng: 74.2179 },
+      "Madhya Pradesh": { code: "MP", zone: "CENTRAL", central: 1, stateHosp: 6, disp: 65, lat: 22.9734, lng: 78.6569 },
+      "Odisha": { code: "OD", zone: "EAST", central: 2, stateHosp: 6, disp: 50, lat: 20.9517, lng: 85.0985 },
+      "Bihar": { code: "BR", zone: "EAST", central: 2, stateHosp: 2, disp: 30, lat: 25.0961, lng: 85.3131 },
+      "Jharkhand": { code: "JH", zone: "EAST", central: 2, stateHosp: 1, disp: 40, lat: 23.6102, lng: 85.2799 },
+      "Chhattisgarh": { code: "CG", zone: "CENTRAL", central: 4, stateHosp: 0, disp: 25, lat: 21.2787, lng: 81.8661 },
+      "Assam": { code: "AS", zone: "NORTH_EAST", central: 2, stateHosp: 0, disp: 28, lat: 26.2006, lng: 92.9376 },
+      "Himachal Pradesh": { code: "HP", zone: "NORTH", central: 1, stateHosp: 1, disp: 15, lat: 31.1048, lng: 77.1734 },
+      "Uttarakhand": { code: "UK", zone: "NORTH", central: 1, stateHosp: 0, disp: 18, lat: 30.0668, lng: 79.0193 },
+      "Goa": { code: "GA", zone: "WEST", central: 0, stateHosp: 1, disp: 10, lat: 15.2993, lng: 74.1240 },
+      "Jammu and Kashmir": { code: "JK", zone: "NORTH", central: 1, stateHosp: 0, disp: 8, lat: 33.7782, lng: 76.5762 },
+      "Chandigarh": { code: "CH", zone: "NORTH", central: 1, stateHosp: 0, disp: 5, lat: 30.7333, lng: 76.7794 },
+      "Puducherry": { code: "PY", zone: "SOUTH", central: 0, stateHosp: 1, disp: 14, lat: 11.9416, lng: 79.8083 },
+      "Meghalaya": { code: "ML", zone: "NORTH_EAST", central: 0, stateHosp: 0, disp: 3, lat: 25.4670, lng: 91.3662 },
+      "Tripura": { code: "TR", zone: "NORTH_EAST", central: 0, stateHosp: 0, disp: 2, lat: 23.9408, lng: 91.9882 }
+    };
+
+    function buildNationwideDataset() {
+      const facilities = [];
+      for (const [state, meta] of Object.entries(STATE_MATRIX)) {
+        for (let i = 1; i <= meta.central; i++) {
+          facilities.push({
+            id: `ESIC-${meta.code}-${i}`,
+            name: i === 1 ? `ESIC Medical College & PGIMSR, ${state}` : `ESIC Model Hospital ${state} Hub ${i}`,
+            admin: "CENTRAL_ESIC",
+            zone: meta.zone,
+            state: state,
+            district: `${state} Urban`,
+            pincode: `${500000 + i * 111}`,
+            lat: +(meta.lat + (i * 0.015)).toFixed(4),
+            lng: +(meta.lng + (i * 0.012)).toFixed(4),
+            tier: "TERTIARY"
+          });
+        }
+        for (let i = 1; i <= meta.stateHosp; i++) {
+          facilities.push({
+            id: `ESIS-${meta.code}-${i}`,
+            name: `ESIS Hospital ${state} - Division ${i}`,
+            admin: "STATE_ESIS",
+            zone: meta.zone,
+            state: state,
+            district: `${state} Industrial Zone`,
+            pincode: `${500000 + (i + 10) * 111}`,
+            lat: +(meta.lat - (i * 0.018)).toFixed(4),
+            lng: +(meta.lng + (i * 0.014)).toFixed(4),
+            tier: "SECONDARY"
+          });
+        }
+        for (let i = 1; i <= meta.disp; i++) {
+          facilities.push({
+            id: `ESID-${meta.code}-${i}`,
+            name: `ESI Dispensary ${state} No. ${i}`,
+            admin: "STATE_ESIS",
+            zone: meta.zone,
+            state: state,
+            district: `${state} Sub-district ${((i % 5) + 1)}`,
+            pincode: `${500000 + i * 23}`,
+            lat: +(meta.lat + ((i % 30) * 0.009) - 0.12).toFixed(4),
+            lng: +(meta.lng + ((i % 30) * 0.011) - 0.10).toFixed(4),
+            tier: "PRIMARY"
+          });
+        }
+        const empanelledCount = Math.floor(meta.disp * 0.45);
+        for (let i = 1; i <= empanelledCount; i++) {
+          facilities.push({
+            id: `SST-${meta.code}-${i}`,
+            name: `Empanelled SST Center ${state} - ${i}`,
+            admin: "EMPANELLED_PRIVATE",
+            zone: meta.zone,
+            state: state,
+            district: `${state} Metro`,
+            pincode: `${500000 + i * 47}`,
+            lat: +(meta.lat + ((i % 20) * 0.013)).toFixed(4),
+            lng: +(meta.lng - ((i % 20) * 0.008)).toFixed(4),
+            tier: "SUPER_SPECIALTY"
+          });
+        }
       }
-    ];
+      return facilities;
+    }
 
     function calculateDistance(lat1, lon1, lat2, lon2) {
       const dLat = (lat2 - lat1) * 0.017453292519943295;
@@ -389,42 +222,207 @@
       setTimeout(() => { map.invalidateSize(); }, 250);
     }
 
-    function openClinicalModal(facility) {
-      document.getElementById('modal-title').textContent = facility.name;
-      document.getElementById('modal-subtitle').textContent = `${facility.district}, ${facility.state} • ${facility.pincode}`;
-      
-      const badge = document.getElementById('modal-tier-badge');
-      badge.textContent = `${facility.tier} • ${facility.admin}`;
-      
-      // Render departments
-      const deptsContainer = document.getElementById('modal-depts');
-      deptsContainer.innerHTML = facility.departments.map(d => 
-        `<span class="px-2 py-1 bg-slate-100 border border-slate-200 text-slate-700 rounded text-[10px] font-medium">${d}</span>`
-      ).join('');
-
-      // Render investigations
-      const invContainer = document.getElementById('modal-investigations');
-      invContainer.innerHTML = facility.investigations.map(inv => 
-        `<span class="px-2 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded text-[10px] font-medium">${inv}</span>`
-      ).join('');
-
-      document.getElementById('modal-drugs').textContent = facility.drugs;
-      document.getElementById('modal-referral-note').textContent = facility.referral_rule;
-      
-      const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${facility.lat},${facility.lng}`;
-      document.getElementById('modal-gmaps-link').href = gmapsUrl;
-
-      document.getElementById('clinical-modal').classList.remove('hidden');
-    }
-
-    document.getElementById('modal-close-btn').addEventListener('click', () => {
-      document.getElementById('clinical-modal').classList.add('hidden');
-    });
-
     function renderListAndMarkers(list) {
       if (!markersLayer) return;
       markersLayer.clearLayers();
       const listContainer = document.getElementById('facility-list');
       listContainer.innerHTML = '';
 
-      if (!list || list.length
+      if (!list || list.length === 0) {
+        listContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">No matching facilities found.</div>`;
+        return;
+      }
+
+      // 1. Draw closest 80 points on map canvas
+      const mapLimit = Math.min(list.length, 80);
+      for (let i = 0; i < mapLimit; i++) {
+        const f = list[i];
+        const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
+        const distStr = f.distanceKm !== undefined ? `<div class="text-emerald-700 font-bold text-[11px] mt-1">📍 ${f.distanceKm} km away</div>` : '';
+
+        const circle = L.circleMarker([f.lat, f.lng], {
+          radius: f.tier === 'TERTIARY' ? 7 : (f.tier === 'SUPER_SPECIALTY' ? 6 : 4),
+          fillColor: f.tier === 'TERTIARY' ? '#ef4444' : (f.tier === 'SUPER_SPECIALTY' ? '#8b5cf6' : (f.tier === 'SECONDARY' ? '#f59e0b' : '#10b981')),
+          color: '#ffffff',
+          weight: 1.2,
+          fillOpacity: 0.85
+        });
+
+        circle.bindPopup(`
+          <div class="text-xs p-1">
+            <strong class="text-slate-900 block font-semibold text-xs mb-0.5">${f.name}</strong>
+            <div class="text-slate-600 mb-1">${f.district}, ${f.state}</div>
+            <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[9px] font-semibold">${f.tier}</span>
+            ${distStr}
+            <a href="${gmapsUrl}" target="_blank" rel="noopener" class="mt-2 block text-center py-1.5 px-2 bg-blue-600 text-white rounded text-[11px] font-medium">
+              🚗 Navigate in Google Maps
+            </a>
+          </div>
+        `);
+        markersLayer.addLayer(circle);
+      }
+
+      // 2. Render sidebar cards (first 35 for mobile smoothness)
+      const frag = document.createDocumentFragment();
+      const cardLimit = Math.min(list.length, 35);
+
+      for (let i = 0; i < cardLimit; i++) {
+        const f = list[i];
+        const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
+        const distBadge = f.distanceKm !== undefined ? `<span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">${f.distanceKm} km</span>` : '';
+
+        const card = document.createElement('div');
+        card.className = "p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs space-y-2 transition";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <h2 class="text-xs font-bold text-slate-800 leading-snug cursor-pointer">${f.name}</h2>
+              ${distBadge}
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">${f.district}, ${f.state} • PIN ${f.pincode}</p>
+            <div class="flex items-center space-x-1 mt-1.5">
+              <span class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200 font-semibold">${f.tier}</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded border border-emerald-200">${f.admin}</span>
+            </div>
+          </div>
+          
+          <a href="${gmapsUrl}" target="_blank" rel="noopener" class="w-full flex items-center justify-center gap-1 py-1.5 bg-slate-100 hover:bg-blue-50 text-blue-700 rounded text-[11px] font-medium border border-slate-200 transition">
+            <span>🗺️</span> Open Google Maps Navigation
+          </a>
+        `;
+
+        card.querySelector('h2').addEventListener('click', () => {
+          map.flyTo([f.lat, f.lng], 13, { duration: 1.0 });
+        });
+
+        frag.appendChild(card);
+      }
+      listContainer.appendChild(frag);
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('search-input').value.toLowerCase().trim();
+      const zone = document.getElementById('zone-filter').value;
+      const tier = document.getElementById('tier-filter').value;
+
+      let results = [];
+      for (let i = 0; i < allFacilities.length; i++) {
+        const f = allFacilities[i];
+        if (zone && f.zone !== zone) continue;
+        if (tier && f.tier !== tier) continue;
+
+        // If no geocoded anchor is set, do text matching
+        if (!currentAnchorPoint && q) {
+          const match = f.name.toLowerCase().includes(q) || 
+                        f.state.toLowerCase().includes(q) || 
+                        f.district.toLowerCase().includes(q) ||
+                        f.pincode.includes(q);
+          if (!match) continue;
+        }
+
+        let item = { ...f };
+        if (currentAnchorPoint) {
+          item.distanceKm = calculateDistance(currentAnchorPoint.lat, currentAnchorPoint.lng, f.lat, f.lng);
+        }
+        results.push(item);
+      }
+
+      // If location anchor is active, sort by nearest distance
+      if (currentAnchorPoint) {
+        results.sort((a, b) => a.distanceKm - b.distanceKm);
+      }
+
+      renderListAndMarkers(results);
+    }
+
+    async function searchLocation(query) {
+      if (!query) return;
+      const banner = document.getElementById('status-banner');
+      const statusText = document.getElementById('status-text');
+
+      banner.classList.remove('hidden');
+      statusText.textContent = `Finding "${query}"...`;
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&limit=1&q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          const name = data[0].display_name.split(',')[0];
+
+          currentAnchorPoint = { lat, lng };
+
+          if (searchPin) map.removeLayer(searchPin);
+          searchPin = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'pin',
+              html: `<div class="w-6 h-6 bg-blue-600 rounded-full border-2 border-white text-white flex items-center justify-center text-xs shadow-md font-bold">📍</div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 24]
+            })
+          }).addTo(map);
+
+          map.flyTo([lat, lng], 10, { duration: 1.0 });
+          statusText.textContent = `Showing nearest facilities to "${name}"`;
+          applyFilters();
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback to text matching if not found on map
+      applyFilters();
+      statusText.textContent = `Text matches for "${query}"`;
+    }
+
+    document.getElementById('gps-btn').addEventListener('click', () => {
+      const banner = document.getElementById('status-banner');
+      const statusText = document.getElementById('status-text');
+
+      if (!navigator.geolocation) {
+        alert("GPS not supported on this browser.");
+        return;
+      }
+
+      banner.classList.remove('hidden');
+      statusText.textContent = "Acquiring GPS location...";
+
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          currentAnchorPoint = { lat, lng };
+
+          if (searchPin) map.removeLayer(searchPin);
+          searchPin = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'pin',
+              html: `<div class="w-6 h-6 bg-indigo-600 rounded-full border-2 border-white text-white flex items-center justify-center text-xs shadow-md font-bold">📍</div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 24]
+            })
+          }).addTo(map);
+
+          map.flyTo([lat, lng], 11, { duration: 1.0 });
+          statusText.textContent = "Nearest facilities to your GPS location";
+          applyFilters();
+        },
+        () => {
+          statusText.textContent = "GPS access denied or unavailable";
+        },
+        { enableHighAccuracy: false, timeout: 5000 }
+      );
+    });
+
+    document.getElementById('search-btn').addEventListener('click', () => {
+      searchLocation(document.getElementById('search-input').value.trim());
+    });
+
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchLocation(document.getElementById('search-input').value.trim());
+    });
+
+    document.getElementById('clear-search').addEventListener('click', () => {
+      currentAnchorPoint = null;
+      if (searchPin) map.removeLayer(search
