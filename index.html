@@ -2,299 +2,417 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>e-pital | National ESI Healthcare Locator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>e-pital | National ESI Facility Directory & Proximity Navigator</title>
   
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Leaflet.js CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Leaflet MarkerCluster CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    #map { height: 260px; width: 100%; }
-    @media (min-width: 768px) { #map { height: 360px; } }
+    body { font-family: 'Inter', sans-serif; }
+    #map { height: 100%; width: 100%; z-index: 10; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body class="bg-[#F8F7F4] text-[#1E232A] font-sans min-h-screen pb-12 antialiased">
+<body class="bg-slate-50 text-slate-900 flex flex-col h-screen overflow-hidden">
 
-  <!-- Header -->
-  <header class="bg-[#131924] text-white px-4 py-3.5 sticky top-0 z-50 shadow-md">
-    <div class="max-w-4xl mx-auto flex items-center justify-between">
-      <div class="flex items-center space-x-2.5">
-        <div class="w-8 h-8 bg-emerald-700 rounded-lg flex items-center justify-center font-black text-white text-base shadow-sm">e</div>
-        <div>
-          <h1 class="text-base font-bold tracking-tight leading-tight text-[#FAF9F6]">e-pital</h1>
-          <p class="text-[10px] text-slate-400">National ESI Facility Directory & Proximity Navigator</p>
-        </div>
+  <!-- Top Header Navigation -->
+  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md z-30 flex-shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-lg text-white shadow">
+        e
       </div>
-      <div id="stats-counter" class="text-xs bg-[#1C2536] border border-slate-700 px-3 py-1 rounded-full text-emerald-400 font-mono font-medium">
-        Loading...
+      <div>
+        <h1 class="text-base font-bold leading-tight tracking-tight">e-pital</h1>
+        <p class="text-[11px] text-slate-400 leading-none">National ESI Facility Directory & Proximity Navigator</p>
       </div>
+    </div>
+    
+    <!-- Dynamic Counter Badge -->
+    <div id="statusBadge" class="text-xs px-3 py-1.5 rounded-full font-medium bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5">
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="statusDot"></span>
+      <span id="recordCount">Loading registry...</span>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto p-3 space-y-3">
+  <!-- Main Dual-Pane Layout -->
+  <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
     
-    <!-- Map Container -->
-    <div class="bg-white p-2 rounded-2xl border border-[#E5E2DC] shadow-sm overflow-hidden">
-      <div id="map" class="rounded-xl"></div>
-    </div>
+    <!-- Left / Top Map Container -->
+    <section class="w-full md:w-3/5 h-64 md:h-full relative flex-shrink-0 border-b md:border-b-0 md:border-r border-slate-200">
+      <div id="map"></div>
+    </section>
 
-    <!-- Search Bar -->
-    <div class="bg-white p-2.5 rounded-2xl border border-[#E5E2DC] shadow-sm space-y-2 relative">
-      <div class="relative flex items-center gap-2">
-        <div class="relative flex-1 flex items-center bg-[#F4F2EC] border border-[#DBD7CE] rounded-xl focus-within:ring-2 focus-within:ring-emerald-700 transition">
-          <span class="pl-3 text-[#6A7280]">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-          </span>
-          <input
-            id="location-input"
-            type="text"
-            autocomplete="off"
-            placeholder="Search village, taluk, town, city, or PIN..."
-            class="w-full pl-2.5 pr-8 py-2.5 text-sm bg-transparent border-none focus:outline-none font-medium text-[#1E232A] placeholder:text-slate-400"
+    <!-- Right / Bottom Facility Explorer & Search Panel -->
+    <section class="w-full md:w-2/5 flex-1 flex flex-col bg-white overflow-hidden shadow-lg z-20">
+      
+      <!-- Search & Filter Controls -->
+      <div class="p-4 border-b border-slate-200 bg-white flex-shrink-0 space-y-3">
+        <div class="relative flex items-center">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search village, taluk, town, city, or PIN..." 
+            class="w-full pl-10 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition shadow-sm"
           />
-          <button id="clear-btn" class="hidden absolute right-2.5 text-xs text-slate-400 hover:text-[#1E232A] font-bold px-1">✕</button>
+          <div class="absolute left-3 text-slate-400 pointer-events-none">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <button 
+            id="geolocateBtn" 
+            title="Use current location" 
+            class="absolute right-1.5 p-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg shadow-sm transition"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
         </div>
 
-        <button id="search-btn" aria-label="Search" class="p-2.5 bg-emerald-800 hover:bg-emerald-900 active:scale-95 text-white rounded-xl shadow-sm shrink-0 transition flex items-center justify-center">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
-        </button>
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+          <span id="resultsCount">Showing nearest facilities</span>
+          <span id="activeAnchorText" class="font-medium text-emerald-700 truncate max-w-[180px]">Center: National</span>
+        </div>
       </div>
 
-      <div class="flex items-center justify-between text-xs text-[#586171] px-1 pt-0.5">
-        <span id="results-count">Showing nearest facilities</span>
-        <span id="active-anchor-badge" class="text-[11px] text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 hidden"></span>
+      <!-- Facility Cards List -->
+      <div id="facilityList" class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2.5 bg-slate-50">
+        <!-- Rendered dynamically -->
       </div>
-    </div>
-
-    <!-- Facility Cards Container -->
-    <div id="facility-list" class="space-y-2.5"></div>
-
+    </section>
   </main>
+    <script>
+    // System State Variables
+    let map;
+    let clusterLayer;
+    let facilitiesData = [];
+    let userCoordinates = { lat: 17.3297, lng: 76.8343 }; // Default view anchor
 
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      const LOCAL_GEO = {
-        "wadi": [17.0483, 76.9934, "Wadi Junction, Kalaburagi"],
-        "wadi junction": [17.0483, 76.9934, "Wadi Junction"],
-        "gulbarga": [17.3297, 76.8343, "Kalaburagi (Gulbarga)"],
-        "kalaburagi": [17.3297, 76.8343, "Kalaburagi"],
-        "shahabad": [17.1332, 76.9388, "Shahabad, Kalaburagi"],
-        "chittapur": [17.1189, 77.0858, "Chittapur, Kalaburagi"],
-        "sedam": [17.1772, 77.2917, "Sedam, Kalaburagi"],
-        "aland": [17.5658, 76.5684, "Aland, Kalaburagi"],
-        "afzalpur": [17.2023, 76.3562, "Afzalpur, Kalaburagi"],
-        "chincholi": [17.4667, 77.4333, "Chincholi, Kalaburagi"],
-        "jevargi": [17.0189, 76.7711, "Jevargi, Kalaburagi"],
-        "bidar": [17.9104, 77.5199, "Bidar"],
-        "raichur": [16.2120, 77.3439, "Raichur"],
-        "yadgir": [16.7639, 77.1378, "Yadgir"],
-        "hyderabad": [17.3850, 78.4867, "Hyderabad"],
-        "bengaluru": [12.9716, 77.5946, "Bengaluru"],
-        "mumbai": [19.0760, 72.8777, "Mumbai"],
-        "delhi": [28.7041, 77.1025, "Delhi"],
-        "chennai": [13.0827, 80.2707, "Chennai"],
-        "kolkata": [22.5726, 88.3639, "Kolkata"],
-        "pune": [18.5204, 73.8567, "Pune"]
-      };
+    // Initialize Leaflet Map
+    function initMap() {
+      map = L.map('map', {
+        zoomControl: true
+      }).setView([userCoordinates.lat, userCoordinates.lng], 6);
 
-      function haversine(lat1, lon1, lat2, lon2) {
-        const dLat = (lat2 - lat1) * 0.017453292519943295;
-        const dLon = (lon2 - lon1) * 0.017453292519943295;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * 0.017453292519943295) * Math.cos(lat2 * 0.017453292519943295) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        return +(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      clusterLayer = L.markerClusterGroup({
+        chunkedLoading: true,
+        maxClusterRadius: 45,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false
+      });
+      map.addLayer(clusterLayer);
+    }
+
+    // Great-Circle Haversine Distance Formula
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth's radius in KM
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    // Multi-path resilient ingestion pipeline
+    async function fetchRegistryData() {
+      const paths = [
+        'data/facilities.json',
+        '/data/facilities.json',
+        './data/facilities.json',
+        'data/3000facilities.json',
+        '/data/3000facilities.json'
+      ];
+
+      for (const p of paths) {
+        try {
+          const res = await fetch(p);
+          if (res.ok) {
+            const raw = await res.json();
+            const items = Array.isArray(raw) ? raw : (raw.facilities || raw.data || raw.records || Object.values(raw));
+            if (Array.isArray(items) && items.length > 0) {
+              console.log(`[e-pital] Successfully resolved ${items.length} records from ${p}`);
+              return items;
+            }
+          }
+        } catch (e) {
+          // Continue attempting candidate paths
+        }
       }
+      throw new Error("Could not find or parse facility data file.");
+    }
 
-      const map = L.map('map', { preferCanvas: true, zoomControl: false }).setView([17.0483, 76.9934], 10);
-      L.control.zoom({ position: 'bottomright' }).addTo(map);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-      
-      const markersLayer = L.layerGroup().addTo(map);
-      let searchPin = null;
-      let allFacilities = [];
-            function renderList(list, anchorName) {
-        markersLayer.clearLayers();
-        const container = document.getElementById('facility-list');
-        container.innerHTML = '';
+    // Normalization Pipeline
+    function normalizeFacilities(rawArray) {
+      const normalized = [];
 
-        document.getElementById('results-count').textContent = anchorName 
-          ? `Showing closest facilities to ${anchorName}` 
-          : `Showing nearest facilities`;
+      rawArray.forEach((item, index) => {
+        if (!item || typeof item !== 'object') return;
 
-        const mapLimit = Math.min(list.length, 50);
-        for (let i = 0; i < mapLimit; i++) {
-          const f = list[i];
-          const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
-          const marker = L.circleMarker([f.lat, f.lng], {
-            radius: f.tier === 'TERTIARY' ? 6 : (f.tier === 'SUPER_SPECIALTY' ? 5 : 4),
-            fillColor: f.tier === 'TERTIARY' ? '#991B1B' : (f.tier === 'SUPER_SPECIALTY' ? '#5B21B6' : (f.tier === 'SECONDARY' ? '#92400E' : '#065F46')),
-            color: '#ffffff',
-            weight: 1.5,
-            fillOpacity: 0.9
-          });
-          marker.bindPopup(`
-            <div class="text-xs p-1 text-[#1E232A]">
-              <strong class="block font-bold text-xs mb-0.5">${f.name}</strong>
-              <div class="text-[#586171] mb-1">${f.city || f.district || ''}, ${f.state}</div>
-              <a href="${gmaps}" target="_blank" rel="noopener" class="mt-1 block text-center py-1 px-2 bg-emerald-800 text-white rounded text-[10px] font-medium">
-                Navigate ↗
-              </a>
-            </div>
-          `);
-          markersLayer.addLayer(marker);
+        // Dynamic coordinate key resolution
+        let rawLat = item.lat ?? item.latitude ?? item.Latitude ?? item.LAT ?? item.coordinates?.lat ?? item.geo?.lat;
+        let rawLng = item.lng ?? item.lon ?? item.longitude ?? item.Longitude ?? item.LON ?? item.LNG ?? item.coordinates?.lng ?? item.coordinates?.lon ?? item.geo?.lng;
+
+        if (item.geometry && Array.isArray(item.geometry.coordinates)) {
+          rawLng = item.geometry.coordinates[0];
+          rawLat = item.geometry.coordinates[1];
         }
 
-        const frag = document.createDocumentFragment();
-        const cardLimit = Math.min(list.length, 30);
+        let lat = parseFloat(rawLat);
+        let lng = parseFloat(rawLng);
 
-        for (let i = 0; i < cardLimit; i++) {
-          const f = list[i];
-          const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
-          const distBadge = f.distanceKm !== undefined ? `<span class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">📍 ${f.distanceKm} km</span>` : '';
-
-          let badge = "bg-emerald-50 text-emerald-900 border-emerald-200";
-          if (f.tier === 'TERTIARY') badge = "bg-rose-50 text-rose-900 border-rose-200";
-          else if (f.tier === 'SUPER_SPECIALTY') badge = "bg-purple-50 text-purple-900 border-purple-200";
-          else if (f.tier === 'SECONDARY') badge = "bg-amber-50 text-amber-900 border-amber-200";
-
-          const card = document.createElement('div');
-          card.className = "p-3.5 bg-white border border-[#E5E2DC] rounded-2xl shadow-sm hover:border-[#DBD7CE] transition relative";
-          card.innerHTML = `
-            <div class="flex items-start justify-between gap-3 pr-10">
-              <div>
-                <h2 class="text-[13px] font-bold text-[#1E232A] leading-snug cursor-pointer hover:text-emerald-700 transition">${f.name}</h2>
-                <p class="text-[11px] text-[#586171] font-medium mt-0.5">${f.city || f.district || ''}, ${f.state}</p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-[#F4F2EC]">
-              <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full border font-semibold ${badge}">${f.tier || 'PRIMARY'}</span>
-              ${distBadge}
-            </div>
-            <a href="${gmaps}" target="_blank" rel="noopener" aria-label="Navigate" title="Open Navigation" class="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-[#F4F2EC] hover:bg-emerald-800 text-[#1E232A] hover:text-white flex items-center justify-center transition active:scale-95 shadow-sm">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-              </svg>
-            </a>
-          `;
-
-          card.querySelector('h2').addEventListener('click', () => {
-            map.flyTo([f.lat, f.lng], 13, { duration: 0.8 });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          });
-
-          frag.appendChild(card);
-        }
-        container.appendChild(frag);
-      }
-
-      function setAnchor(lat, lng, label) {
-        const badge = document.getElementById('active-anchor-badge');
-        badge.textContent = `📍 Nearest to: ${label}`;
-        badge.classList.remove('hidden');
-        document.getElementById('clear-btn').classList.remove('hidden');
-
-        if (searchPin) map.removeLayer(searchPin);
-        searchPin = L.marker([lat, lng], {
-          icon: L.divIcon({
-            className: 'pin',
-            html: `<div class="w-6 h-6 bg-emerald-800 text-white rounded-full border-2 border-white flex items-center justify-center text-xs shadow-md font-bold">📍</div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 24]
-          })
-        }).addTo(map);
-
-        map.flyTo([lat, lng], 10, { duration: 0.8 });
-
-        const sorted = allFacilities.map(f => ({
-          ...f,
-          distanceKm: haversine(lat, lng, f.lat, f.lng)
-        })).sort((a, b) => a.distanceKm - b.distanceKm);
-
-        renderList(sorted, label);
-      }
-
-      async function doSearch(query) {
-        const q = query.trim().toLowerCase();
-        if (!q) return;
-
-        if (LOCAL_GEO[q]) {
-          const hit = LOCAL_GEO[q];
-          setAnchor(hit[0], hit[1], hit[2]);
+        // Indian Geographic Bounding Box verification
+        const validCoords = !isNaN(lat) && !isNaN(lng) && lat >= 6 && lat <= 38 && lng >= 68 && lng <= 98;
+        
+        // Auto-fix inverted lat/lng coordinates
+        if (!validCoords && !isNaN(lat) && !isNaN(lng) && lng >= 6 && lng <= 38 && lat >= 68 && lat <= 98) {
+          const temp = lat;
+          lat = lng;
+          lng = temp;
+        } else if (!validCoords) {
           return;
         }
 
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&limit=1&q=${encodeURIComponent(q)}`);
-          const data = await res.json();
-          if (data && data.length > 0) {
-            setAnchor(parseFloat(data[0].lat), parseFloat(data[0].lon), data[0].display_name.split(',')[0]);
-            return;
-          }
-        } catch (e) {}
-
-        const filtered = allFacilities.filter(f => (f.city || '').toLowerCase().includes(q) || (f.state || '').toLowerCase().includes(q) || (f.name || '').toLowerCase().includes(q));
-        if (filtered.length > 0) {
-          setAnchor(filtered[0].lat, filtered[0].lng, filtered[0].city || filtered[0].district || q);
+        // Tier classification
+        let rawTier = String(item.tier || item.category || item.type || item.facility_type || '').toUpperCase();
+        let normalizedTier = 'PRIMARY';
+        if (rawTier.includes('SUPER') || rawTier.includes('TERTIARY') || rawTier.includes('COLLEGE')) {
+          normalizedTier = 'TERTIARY';
+        } else if (rawTier.includes('HOSPITAL') || rawTier.includes('SECONDARY')) {
+          normalizedTier = 'SECONDARY';
         }
-      }
 
-      document.getElementById('search-btn').addEventListener('click', () => doSearch(document.getElementById('location-input').value));
-      document.getElementById('location-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(e.target.value); });
-      document.getElementById('clear-btn').addEventListener('click', () => {
-        document.getElementById('location-input').value = '';
-        document.getElementById('clear-btn').classList.add('hidden');
-        document.getElementById('active-anchor-badge').classList.add('hidden');
-        if (searchPin) map.removeLayer(searchPin);
-        setAnchor(17.0483, 76.9934, "Wadi Junction");
+        // Institution name normalization
+        const resolvedName = 
+          item.name || 
+          item.hospital_name || 
+          item.facility_name || 
+          item.Facility_Name || 
+          item['Hospital Name'] || 
+          item['Name of Institution'] || 
+          `ESI Facility #${index + 1}`;
+
+        normalized.push({
+          id: item.id || item.facility_id || `ESIC-IN-${String(index + 1).padStart(4, '0')}`,
+          name: String(resolvedName).trim(),
+          tier: normalizedTier,
+          city: item.city || item.district || item.District || item.location || 'Unknown District',
+          state: item.state || item.State || 'India',
+          pincode: item.pincode || item.pin || '',
+          lat: lat,
+          lng: lng,
+          phone: item.contact?.phone || item.phone || item.contact || '1800-11-2526',
+          distanceKm: 0
+        });
       });
 
-      // Flexible Data Loader
-      fetch('./data/3000facilities.json')
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        })
-        .then(raw => {
-          const rawList = Array.isArray(raw) ? raw : (raw.facilities || raw.data || raw.items || Object.values(raw)[0] || []);
+      return normalized;
+    }
 
-          allFacilities = rawList.map((item, idx) => {
-            const rawLat = item.coordinates?.lat ?? item.coordinates?.latitude ?? item.lat ?? item.latitude ?? item.Lat ?? item.Latitude ?? 0;
-            const rawLng = item.coordinates?.lng ?? item.coordinates?.longitude ?? item.coordinates?.lon ?? item.lng ?? item.longitude ?? item.lon ?? item.Lng ?? item.Longitude ?? 0;
-
-            const parsedLat = parseFloat(rawLat);
-            const parsedLng = parseFloat(rawLng);
-
-            return {
-              id: item.id || `ESIC-${idx + 1}`,
-              name: item.name || item.facility_name || item.hospital_name || 'ESI Facility',
-              city: item.city || item.district || item.location || 'Unknown',
-              state: item.state || item.state_name || '',
-              tier: item.tier || item.type || 'PRIMARY',
-              lat: isNaN(parsedLat) ? 0 : parsedLat,
-              lng: isNaN(parsedLng) ? 0 : parsedLng,
-              distanceKm: 0
-            };
-          }).filter(f => f.lat >= 6 && f.lat <= 38 && f.lng >= 68 && f.lng <= 98);
-
-          document.getElementById('stats-counter').textContent = `${allFacilities.length.toLocaleString()} Facilities`;
-          
-          if (allFacilities.length > 0) {
-            setAnchor(17.0483, 76.9934, "Wadi Junction");
-          } else {
-            document.getElementById('stats-counter').textContent = "0 Facilities Found";
-          }
-          setTimeout(() => map.invalidateSize(), 200);
-        })
-        .catch(err => {
-          console.error("Fetch failed:", err);
-          document.getElementById('stats-counter').textContent = "Fetch Failed (404/CORS)";
+    // Render Leaflet Markers
+    function renderMapMarkers(data) {
+      clusterLayer.clearLayers();
+      
+      data.forEach(fac => {
+        const tierColor = fac.tier === 'TERTIARY' ? '#ef4444' : (fac.tier === 'SECONDARY' ? '#3b82f6' : '#10b981');
+        
+        const marker = L.circleMarker([fac.lat, fac.lng], {
+          radius: 7,
+          fillColor: tierColor,
+          color: '#ffffff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.85
         });
-    });
+
+        marker.bindPopup(`
+          <div class="p-1 text-slate-900 font-sans">
+            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-white" style="background-color: ${tierColor}">${fac.tier}</span>
+            <h4 class="font-bold text-sm mt-1.5 leading-tight">${fac.name}</h4>
+            <p class="text-xs text-slate-600 mt-1">${fac.city}, ${fac.state} ${fac.pincode ? '- ' + fac.pincode : ''}</p>
+            <p class="text-xs text-slate-500 mt-0.5">📞 ${fac.phone}</p>
+          </div>
+        `);
+
+        clusterLayer.addLayer(marker);
+      });
+    }
+
+    // Render Facility Card List
+    function renderList(data) {
+      const listContainer = document.getElementById('facilityList');
+      listContainer.innerHTML = '';
+
+      if (data.length === 0) {
+        listContainer.innerHTML = `
+          <div class="p-8 text-center text-slate-400">
+            <p class="text-sm">No facilities match your search criteria.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const displayList = data.slice(0, 50); // High-performance virtualization
+
+      displayList.forEach(fac => {
+        const badgeColor = fac.tier === 'TERTIARY' ? 'bg-red-50 text-red-700 border-red-200' : 
+                           (fac.tier === 'SECONDARY' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200');
+
+        const card = document.createElement('div');
+        card.className = "p-3.5 bg-white rounded-xl border border-slate-200 hover:border-emerald-400 hover:shadow-md transition cursor-pointer flex flex-col justify-between";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-md border ${badgeColor}">
+                ${fac.tier}
+              </span>
+              <span class="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                📍 ${fac.distanceKm.toFixed(1)} km
+              </span>
+            </div>
+            <h3 class="font-bold text-sm text-slate-900 mt-2 leading-snug">${fac.name}</h3>
+            <p class="text-xs text-slate-500 mt-1">${fac.city}, ${fac.state} ${fac.pincode ? '- ' + fac.pincode : ''}</p>
+          </div>
+          <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>📞 ${fac.phone}</span>
+            <span class="text-emerald-600 font-semibold text-[11px] hover:underline">Focus on Map →</span>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          map.flyTo([fac.lat, fac.lng], 15, { animate: true, duration: 1.2 });
+        });
+
+        listContainer.appendChild(card);
+      });
+
+      document.getElementById('resultsCount').innerText = `Showing ${displayList.length} of ${data.length} institutions`;
+    }
+
+    // Recalculate Distance & Sort
+    function updateDistances(originLat, originLng) {
+      facilitiesData.forEach(fac => {
+        fac.distanceKm = calculateDistance(originLat, originLng, fac.lat, fac.lng);
+      });
+
+      facilitiesData.sort((a, b) => a.distanceKm - b.distanceKm);
+      applyFilter();
+    }
+
+    // Filter by Search Query
+    function applyFilter() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      const filtered = facilitiesData.filter(fac => {
+        return fac.name.toLowerCase().includes(query) ||
+               fac.city.toLowerCase().includes(query) ||
+               fac.state.toLowerCase().includes(query) ||
+               fac.pincode.includes(query) ||
+               fac.tier.toLowerCase().includes(query);
+      });
+
+      renderList(filtered);
+    }
+
+    // Search Geocoder (Nominatim OpenStreetMap)
+    async function searchLocation(queryText) {
+      if (!queryText.trim()) return;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(queryText)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          userCoordinates = { lat, lng };
+          map.flyTo([lat, lng], 11, { animate: true });
+          document.getElementById('activeAnchorText').innerText = `Near: ${data[0].display_name.split(',')[0]}`;
+          updateDistances(lat, lng);
+        }
+      } catch (err) {
+        console.warn('Geocoding error:', err);
+      }
+    }
+
+    // App Initializer
+    async function initApp() {
+      initMap();
+
+      const statusBadge = document.getElementById('statusBadge');
+      const statusDot = document.getElementById('statusDot');
+      const recordCount = document.getElementById('recordCount');
+
+      try {
+        const raw = await fetchRegistryData();
+        facilitiesData = normalizeFacilities(raw);
+
+        if (facilitiesData.length === 0) {
+          throw new Error("No valid coordinates parsed from dataset.");
+        }
+
+        // UI Header State: Connected
+        statusBadge.className = "text-xs px-3 py-1.5 rounded-full font-medium bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center gap-1.5";
+        statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+        recordCount.innerText = `${facilitiesData.length.toLocaleString()} Facilities Active`;
+
+        // Load & Render
+        updateDistances(userCoordinates.lat, userCoordinates.lng);
+        renderMapMarkers(facilitiesData);
+
+      } catch (error) {
+        console.error('[e-pital] Initialization failed:', error);
+        statusBadge.className = "text-xs px-3 py-1.5 rounded-full font-medium bg-red-950 text-red-300 border border-red-800 flex items-center gap-1.5";
+        statusDot.className = "w-2 h-2 rounded-full bg-red-500";
+        recordCount.innerText = "Fetch Failed (404/CORS)";
+      }
+
+      // Event Listeners
+      document.getElementById('searchInput').addEventListener('input', applyFilter);
+      document.getElementById('searchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') searchLocation(e.target.value);
+      });
+
+      document.getElementById('geolocateBtn').addEventListener('click', () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const { latitude, longitude } = pos.coords;
+              userCoordinates = { lat: latitude, lng: longitude };
+              map.flyTo([latitude, longitude], 12);
+              document.getElementById('activeAnchorText').innerText = "Near: My Location";
+              updateDistances(latitude, longitude);
+            },
+            () => alert("Location permission denied. Please search your city or PIN manually.")
+          );
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
