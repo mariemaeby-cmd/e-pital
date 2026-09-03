@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+            <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -309,4 +309,86 @@
               ${distBadge}
             </div>
             <a href="${gmaps}" target="_blank" rel="noopener" aria-label="Navigate" title="Open Navigation" class="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-[#F4F2EC] hover:bg-emerald-800 text-[#1E232A] hover:text-white flex items-center justify-center transition active:scale-95 shadow-sm">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" vi
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" ewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </a>
+        `;
+
+        card.querySelector('h2').addEventListener('click', () => {
+          map.flyTo([f.lat, f.lng], 13, { duration: 0.8 });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        frag.appendChild(card);
+      }
+      container.appendChild(frag);
+    }
+
+    function setAnchor(lat, lng, label) {
+      const badge = document.getElementById('active-anchor-badge');
+      badge.textContent = `📍 Nearest to: ${label}`;
+      badge.classList.remove('hidden');
+      document.getElementById('clear-btn').classList.remove('hidden');
+
+      if (searchPin) map.removeLayer(searchPin);
+      searchPin = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'pin',
+          html: `<div class="w-6 h-6 bg-emerald-800 text-white rounded-full border-2 border-white flex items-center justify-center text-xs shadow-md font-bold">📍</div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 24]
+        })
+      }).addTo(map);
+
+      map.flyTo([lat, lng], 10, { duration: 0.8 });
+
+      const sorted = allFacilities.map(f => ({
+        ...f,
+        distanceKm: haversine(lat, lng, f.lat, f.lng)
+      })).sort((a, b) => a.distanceKm - b.distanceKm);
+
+      renderList(sorted, label);
+    }
+
+    async function doSearch(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) return;
+
+      if (LOCAL_GEO[q]) {
+        const hit = LOCAL_GEO[q];
+        setAnchor(hit[0], hit[1], hit[2]);
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&limit=1&q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setAnchor(parseFloat(data[0].lat), parseFloat(data[0].lon), data[0].display_name.split(',')[0]);
+          return;
+        }
+      } catch (e) {}
+
+      const filtered = allFacilities.filter(f => f.city.toLowerCase().includes(q) || f.state.toLowerCase().includes(q) || f.name.toLowerCase().includes(q));
+      if (filtered.length > 0) {
+        setAnchor(filtered[0].lat, filtered[0].lng, filtered[0].city);
+      }
+    }
+
+    document.getElementById('search-btn').addEventListener('click', () => doSearch(document.getElementById('location-input').value));
+    document.getElementById('location-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(e.target.value); });
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      document.getElementById('location-input').value = '';
+      document.getElementById('clear-btn').classList.add('hidden');
+      document.getElementById('active-anchor-badge').classList.add('hidden');
+      if (searchPin) map.removeLayer(searchPin);
+      setAnchor(17.0483, 76.9934, "Wadi Junction");
+    });
+
+    // Default Anchor: Wadi Junction
+    setAnchor(17.0483, 76.9934, "Wadi Junction");
+    setTimeout(() => map.invalidateSize(), 200);
+  </script>
+</body>
+</html>
