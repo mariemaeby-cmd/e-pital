@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>e-pital | National ESI Healthcare Locator</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -11,66 +10,64 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    #map-container { height: 42vh; width: 100%; position: relative; }
-    #map { height: 100%; width: 100%; background: #f8fafc; }
+    #map { height: 320px; width: 100%; z-index: 10; }
     @media (min-width: 768px) {
-      #map-container { height: calc(100vh - 64px); }
+      #map { height: 100%; min-height: 550px; }
     }
-    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900 font-sans antialiased overflow-hidden">
+<body class="bg-slate-100 text-slate-900 font-sans min-h-screen flex flex-col">
 
   <!-- Header -->
-  <header class="h-16 bg-slate-900 text-white px-4 flex items-center justify-between border-b border-slate-800 shadow-sm z-30 relative">
+  <header class="h-16 bg-slate-900 text-white px-4 flex items-center justify-between border-b border-slate-800 shadow-md sticky top-0 z-40">
     <div class="flex items-center space-x-2.5">
-      <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-white text-base shadow-sm">e</div>
+      <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-white text-base">e</div>
       <div>
         <h1 class="text-base font-bold tracking-tight leading-none">e-pital</h1>
         <p class="text-[10px] text-slate-400 mt-0.5">National ESI Directory & Proximity Navigator</p>
       </div>
     </div>
     <div id="stats-counter" class="text-[11px] bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-emerald-400 font-mono">
-      Ready
+      2,861 Facilities
     </div>
   </header>
 
-  <div class="flex flex-col md:flex-row h-[calc(100vh-64px)]">
+  <!-- Main Responsive Container -->
+  <div class="flex-1 flex flex-col md:flex-row">
     
-    <!-- Sidebar -->
-    <aside class="w-full md:w-[440px] bg-white border-r border-slate-200 flex flex-col z-20 shadow-sm h-[58vh] md:h-full order-2 md:order-1">
+    <!-- Controls & List Column -->
+    <div class="w-full md:w-[420px] bg-white border-r border-slate-200 flex flex-col shadow-sm order-2 md:order-1">
       
       <!-- Search Box -->
-      <div class="p-3 border-b border-slate-200 space-y-2 bg-slate-50">
+      <div class="p-3 border-b border-slate-200 space-y-2 bg-slate-50 sticky top-16 z-30">
         <div class="flex space-x-1.5">
           <input
             id="search-input"
             type="text"
-            placeholder="Search any town, city, district, or PIN..."
-            class="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+            placeholder="Search town, city, district, or PIN..."
+            class="flex-1 px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
           />
           <button
             id="search-btn"
-            class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
+            class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition"
           >
             Find
           </button>
           <button
             id="gps-btn"
-            class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center"
+            class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center"
           >
             📍 GPS
           </button>
         </div>
 
-        <div id="status-banner" class="hidden px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-[11px] flex justify-between items-center">
+        <div id="status-banner" class="hidden px-2.5 py-1.5 bg-blue-50 text-blue-800 border border-blue-200 rounded text-[11px] flex justify-between items-center">
           <span id="status-text">Ready</span>
-          <button id="clear-search" class="text-[10px] font-bold uppercase tracking-wider text-emerald-900 underline ml-2">Reset</button>
+          <button id="clear-search" class="text-[10px] font-bold uppercase tracking-wider text-blue-900 underline ml-2">Reset</button>
         </div>
 
         <div class="grid grid-cols-2 gap-1.5">
-          <select id="zone-filter" class="w-full px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <select id="zone-filter" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="">All Zones</option>
             <option value="SOUTH">South Zone</option>
             <option value="NORTH">North Zone</option>
@@ -80,7 +77,7 @@
             <option value="NORTH_EAST">North-East Zone</option>
           </select>
 
-          <select id="tier-filter" class="w-full px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <select id="tier-filter" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="">All Care Tiers</option>
             <option value="TERTIARY">Tertiary (Medical Colleges / Apex)</option>
             <option value="SECONDARY">Secondary (ESIS Hospitals)</option>
@@ -90,14 +87,14 @@
         </div>
       </div>
 
-      <!-- Facility List -->
-      <div id="facility-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 custom-scrollbar p-2 space-y-2 bg-slate-50/40"></div>
-    </aside>
+      <!-- Facility List Results -->
+      <div id="facility-list" class="p-3 space-y-2.5 bg-slate-50/50 flex-1 overflow-y-auto"></div>
+    </div>
 
-    <!-- Map Canvas -->
-    <main id="map-container" class="order-1 md:order-2">
+    <!-- Map Canvas Column -->
+    <div class="w-full md:flex-1 bg-slate-200 order-1 md:order-2">
       <div id="map"></div>
-    </main>
+    </div>
   </div>
 
   <script>
@@ -107,13 +104,28 @@
     let allFacilities = [];
     let currentAnchorPoint = null;
 
+    // Fast Metro Coordinates fallback to ensure zero lag
+    const METRO_CACHE = {
+      "hyderabad": { lat: 17.3850, lng: 78.4867, name: "Hyderabad" },
+      "bengaluru": { lat: 12.9716, lng: 77.5946, name: "Bengaluru" },
+      "bangalore": { lat: 12.9716, lng: 77.5946, name: "Bengaluru" },
+      "mumbai": { lat: 19.0760, lng: 72.8777, name: "Mumbai" },
+      "delhi": { lat: 28.7041, lng: 77.1025, name: "Delhi" },
+      "chennai": { lat: 13.0827, lng: 80.2707, name: "Chennai" },
+      "kolkata": { lat: 22.5726, lng: 88.3639, name: "Kolkata" },
+      "ahmedabad": { lat: 23.0225, lng: 72.5714, name: "Ahmedabad" },
+      "pune": { lat: 18.5204, lng: 73.8567, name: "Pune" },
+      "kalaburagi": { lat: 17.3297, lng: 76.8343, name: "Kalaburagi" },
+      "gulbarga": { lat: 17.3297, lng: 76.8343, name: "Kalaburagi" }
+    };
+
     const STATE_MATRIX = {
       "Karnataka": { code: "KA", zone: "SOUTH", central: 3, stateHosp: 8, disp: 142, lat: 15.3173, lng: 75.7139 },
+      "Telangana": { code: "TS", zone: "SOUTH", central: 2, stateHosp: 5, disp: 72, lat: 17.4578, lng: 78.4398 },
       "Maharashtra": { code: "MH", zone: "WEST", central: 3, stateHosp: 12, disp: 220, lat: 19.7515, lng: 75.7139 },
       "Tamil Nadu": { code: "TN", zone: "SOUTH", central: 2, stateHosp: 8, disp: 210, lat: 11.1271, lng: 78.6569 },
       "Delhi": { code: "DL", zone: "NORTH", central: 4, stateHosp: 0, disp: 35, lat: 28.7041, lng: 77.1025 },
       "West Bengal": { code: "WB", zone: "EAST", central: 1, stateHosp: 13, disp: 180, lat: 22.9868, lng: 87.8550 },
-      "Telangana": { code: "TS", zone: "SOUTH", central: 2, stateHosp: 5, disp: 72, lat: 18.1124, lng: 79.0193 },
       "Gujarat": { code: "GJ", zone: "WEST", central: 4, stateHosp: 8, disp: 125, lat: 22.2587, lng: 71.1924 },
       "Uttar Pradesh": { code: "UP", zone: "CENTRAL", central: 6, stateHosp: 10, disp: 155, lat: 26.8467, lng: 80.9462 },
       "Kerala": { code: "KL", zone: "SOUTH", central: 3, stateHosp: 9, disp: 145, lat: 10.8505, lng: 76.2711 },
@@ -138,16 +150,16 @@
     };
 
     function buildNationwideDataset() {
-      const facilities = [];
+      const list = [];
       for (const [state, meta] of Object.entries(STATE_MATRIX)) {
         for (let i = 1; i <= meta.central; i++) {
-          facilities.push({
+          list.push({
             id: `ESIC-${meta.code}-${i}`,
-            name: i === 1 ? `ESIC Medical College & PGIMSR, ${state}` : `ESIC Model Hospital ${state} Hub ${i}`,
+            name: i === 1 ? `ESIC Medical College & Hospital, ${state}` : `ESIC Model Hospital ${state} Hub ${i}`,
             admin: "CENTRAL_ESIC",
             zone: meta.zone,
             state: state,
-            district: `${state} Urban`,
+            district: `${state} Metro`,
             pincode: `${500000 + i * 111}`,
             lat: +(meta.lat + (i * 0.015)).toFixed(4),
             lng: +(meta.lng + (i * 0.012)).toFixed(4),
@@ -155,7 +167,7 @@
           });
         }
         for (let i = 1; i <= meta.stateHosp; i++) {
-          facilities.push({
+          list.push({
             id: `ESIS-${meta.code}-${i}`,
             name: `ESIS Hospital ${state} - Division ${i}`,
             admin: "STATE_ESIS",
@@ -169,13 +181,13 @@
           });
         }
         for (let i = 1; i <= meta.disp; i++) {
-          facilities.push({
+          list.push({
             id: `ESID-${meta.code}-${i}`,
             name: `ESI Dispensary ${state} No. ${i}`,
             admin: "STATE_ESIS",
             zone: meta.zone,
             state: state,
-            district: `${state} Sub-district ${((i % 5) + 1)}`,
+            district: `${state} Sector ${((i % 5) + 1)}`,
             pincode: `${500000 + i * 23}`,
             lat: +(meta.lat + ((i % 30) * 0.009) - 0.12).toFixed(4),
             lng: +(meta.lng + ((i % 30) * 0.011) - 0.10).toFixed(4),
@@ -184,13 +196,13 @@
         }
         const empanelledCount = Math.floor(meta.disp * 0.45);
         for (let i = 1; i <= empanelledCount; i++) {
-          facilities.push({
+          list.push({
             id: `SST-${meta.code}-${i}`,
-            name: `Empanelled SST Center ${state} - ${i}`,
+            name: `Empanelled SST Hospital ${state} - ${i}`,
             admin: "EMPANELLED_PRIVATE",
             zone: meta.zone,
             state: state,
-            district: `${state} Metro`,
+            district: `${state} Metro Area`,
             pincode: `${500000 + i * 47}`,
             lat: +(meta.lat + ((i % 20) * 0.013)).toFixed(4),
             lng: +(meta.lng - ((i % 20) * 0.008)).toFixed(4),
@@ -198,7 +210,7 @@
           });
         }
       }
-      return facilities;
+      return list;
     }
 
     function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -219,7 +231,7 @@
       }).addTo(map);
 
       markersLayer = L.layerGroup().addTo(map);
-      setTimeout(() => { map.invalidateSize(); }, 250);
+      setTimeout(() => { map.invalidateSize(); }, 300);
     }
 
     function renderListAndMarkers(list) {
@@ -233,8 +245,8 @@
         return;
       }
 
-      // 1. Draw closest 80 points on map canvas
-      const mapLimit = Math.min(list.length, 80);
+      // 1. Draw Map Markers
+      const mapLimit = Math.min(list.length, 60);
       for (let i = 0; i < mapLimit; i++) {
         const f = list[i];
         const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
@@ -262,9 +274,9 @@
         markersLayer.addLayer(circle);
       }
 
-      // 2. Render sidebar cards (first 35 for mobile smoothness)
+      // 2. Render Cards
       const frag = document.createDocumentFragment();
-      const cardLimit = Math.min(list.length, 35);
+      const cardLimit = Math.min(list.length, 30);
 
       for (let i = 0; i < cardLimit; i++) {
         const f = list[i];
@@ -311,7 +323,6 @@
         if (zone && f.zone !== zone) continue;
         if (tier && f.tier !== tier) continue;
 
-        // If no geocoded anchor is set, do text matching
         if (!currentAnchorPoint && q) {
           const match = f.name.toLowerCase().includes(q) || 
                         f.state.toLowerCase().includes(q) || 
@@ -327,7 +338,6 @@
         results.push(item);
       }
 
-      // If location anchor is active, sort by nearest distance
       if (currentAnchorPoint) {
         results.sort((a, b) => a.distanceKm - b.distanceKm);
       }
@@ -339,10 +349,19 @@
       if (!query) return;
       const banner = document.getElementById('status-banner');
       const statusText = document.getElementById('status-text');
+      const normalizedQuery = query.toLowerCase().trim();
 
       banner.classList.remove('hidden');
       statusText.textContent = `Finding "${query}"...`;
 
+      // Check fast metro cache first
+      if (METRO_CACHE[normalizedQuery]) {
+        const hit = METRO_CACHE[normalizedQuery];
+        setAnchorAndRender(hit.lat, hit.lng, hit.name);
+        return;
+      }
+
+      // Try geocoding network lookup
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&limit=1&q=${encodeURIComponent(query)}`);
         const data = await res.json();
@@ -351,29 +370,35 @@
           const lat = parseFloat(data[0].lat);
           const lng = parseFloat(data[0].lon);
           const name = data[0].display_name.split(',')[0];
-
-          currentAnchorPoint = { lat, lng };
-
-          if (searchPin) map.removeLayer(searchPin);
-          searchPin = L.marker([lat, lng], {
-            icon: L.divIcon({
-              className: 'pin',
-              html: `<div class="w-6 h-6 bg-blue-600 rounded-full border-2 border-white text-white flex items-center justify-center text-xs shadow-md font-bold">📍</div>`,
-              iconSize: [24, 24],
-              iconAnchor: [12, 24]
-            })
-          }).addTo(map);
-
-          map.flyTo([lat, lng], 10, { duration: 1.0 });
-          statusText.textContent = `Showing nearest facilities to "${name}"`;
-          applyFilters();
+          setAnchorAndRender(lat, lng, name);
           return;
         }
       } catch (e) {}
 
-      // Fallback to text matching if not found on map
+      // Fallback: apply standard text matching
       applyFilters();
-      statusText.textContent = `Text matches for "${query}"`;
+      statusText.textContent = `Matches for "${query}"`;
+    }
+
+    function setAnchorAndRender(lat, lng, name) {
+      const banner = document.getElementById('status-banner');
+      const statusText = document.getElementById('status-text');
+
+      currentAnchorPoint = { lat, lng };
+
+      if (searchPin) map.removeLayer(searchPin);
+      searchPin = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'pin',
+          html: `<div class="w-6 h-6 bg-blue-600 rounded-full border-2 border-white text-white flex items-center justify-center text-xs shadow-md font-bold">📍</div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 24]
+        })
+      }).addTo(map);
+
+      map.flyTo([lat, lng], 10, { duration: 1.0 });
+      statusText.textContent = `Nearest facilities to "${name}"`;
+      applyFilters();
     }
 
     document.getElementById('gps-btn').addEventListener('click', () => {
@@ -390,23 +415,7 @@
 
       navigator.geolocation.getCurrentPosition(
         pos => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          currentAnchorPoint = { lat, lng };
-
-          if (searchPin) map.removeLayer(searchPin);
-          searchPin = L.marker([lat, lng], {
-            icon: L.divIcon({
-              className: 'pin',
-              html: `<div class="w-6 h-6 bg-indigo-600 rounded-full border-2 border-white text-white flex items-center justify-center text-xs shadow-md font-bold">📍</div>`,
-              iconSize: [24, 24],
-              iconAnchor: [12, 24]
-            })
-          }).addTo(map);
-
-          map.flyTo([lat, lng], 11, { duration: 1.0 });
-          statusText.textContent = "Nearest facilities to your GPS location";
-          applyFilters();
+          setAnchorAndRender(pos.coords.latitude, pos.coords.longitude, "Your Location");
         },
         () => {
           statusText.textContent = "GPS access denied or unavailable";
@@ -421,8 +430,4 @@
 
     document.getElementById('search-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') searchLocation(document.getElementById('search-input').value.trim());
-    });
-
-    document.getElementById('clear-search').addEventListener('click', () => {
-      currentAnchorPoint = null;
-      if (searchPin) map.removeLayer(search
+    }
