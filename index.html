@@ -24,7 +24,7 @@
         <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-white text-base">e</div>
         <div>
           <h1 class="text-base font-bold tracking-tight leading-tight">e-pital</h1>
-          <p class="text-[10px] text-slate-400">National ESI Facility Directory & Navigator</p>
+          <p class="text-[10px] text-slate-400">National ESI Facility Locator & Navigator</p>
         </div>
       </div>
       <div id="stats-counter" class="text-xs bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-emerald-400 font-mono">
@@ -40,36 +40,43 @@
     </div>
 
     <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs space-y-2 relative">
-      <div class="relative">
-        <input
-          id="location-input"
-          type="text"
-          autocomplete="off"
-          placeholder="Search any village, town, landmark, street, or PIN in India..."
-          class="w-full pl-3 pr-24 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
-        />
-        <div class="absolute right-1.5 top-1.5 flex space-x-1">
-          <button
-            id="gps-btn"
-            title="Use current GPS location"
-            class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-semibold flex items-center"
-          >
-            📍 GPS
-          </button>
+      <div class="relative flex space-x-1.5">
+        <div class="relative flex-1">
+          <input
+            id="location-input"
+            type="text"
+            autocomplete="off"
+            placeholder="Search ANY village, taluk, town, or city (e.g., Sedam, Aland, Mumbai)..."
+            class="w-full pl-3 pr-8 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+          />
           <button
             id="clear-btn"
-            class="px-2 py-1 text-xs text-slate-500 hover:text-slate-800 font-semibold"
+            class="hidden absolute right-2 top-2.5 text-xs text-slate-400 hover:text-slate-700 font-bold px-1"
           >
             ✕
           </button>
         </div>
 
+        <button
+          id="search-btn"
+          class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs shrink-0 transition"
+        >
+          Find
+        </button>
+        <button
+          id="gps-btn"
+          title="Use GPS"
+          class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold shadow-xs shrink-0 flex items-center"
+        >
+          📍 GPS
+        </button>
+
         <div id="suggestions-box" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-40 max-h-60 overflow-y-auto divide-y divide-slate-100"></div>
       </div>
 
       <div class="flex items-center justify-between text-xs text-slate-500 px-0.5 pt-0.5">
-        <span id="results-count">Showing nationwide facilities</span>
-        <span id="active-anchor-badge" class="text-[11px] text-emerald-700 font-semibold hidden"></span>
+        <span id="results-count">Showing nearest facilities</span>
+        <span id="active-anchor-badge" class="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 hidden"></span>
       </div>
     </div>
 
@@ -85,33 +92,53 @@
     let currentAnchorPoint = null;
     let debounceTimer = null;
 
+    // Direct offline lookup for local taluks & metros so there's zero network delay
+    const LOCAL_GEO_CACHE = {
+      "sedam": { lat: 17.1772, lng: 77.2917, name: "Sedam, Kalaburagi" },
+      "aland": { lat: 17.5658, lng: 76.5684, name: "Aland, Kalaburagi" },
+      "afzalpur": { lat: 17.2023, lng: 76.3562, name: "Afzalpur, Kalaburagi" },
+      "chittapur": { lat: 17.1189, lng: 77.0858, name: "Chittapur, Kalaburagi" },
+      "chincholi": { lat: 17.4667, lng: 77.4333, name: "Chincholi, Kalaburagi" },
+      "jevargi": { lat: 17.0189, lng: 76.7711, name: "Jevargi, Kalaburagi" },
+      "kalaburagi": { lat: 17.3297, lng: 76.8343, name: "Kalaburagi" },
+      "gulbarga": { lat: 17.3297, lng: 76.8343, name: "Kalaburagi" },
+      "mumbai": { lat: 19.0760, lng: 72.8777, name: "Mumbai" },
+      "bengaluru": { lat: 12.9716, lng: 77.5946, name: "Bengaluru" },
+      "bangalore": { lat: 12.9716, lng: 77.5946, name: "Bengaluru" },
+      "hyderabad": { lat: 17.3850, lng: 78.4867, name: "Hyderabad" },
+      "delhi": { lat: 28.7041, lng: 77.1025, name: "Delhi" },
+      "chennai": { lat: 13.0827, lng: 80.2707, name: "Chennai" },
+      "kolkata": { lat: 22.5726, lng: 88.3639, name: "Kolkata" },
+      "pune": { lat: 18.5204, lng: 73.8567, name: "Pune" }
+    };
+
     const STATE_MATRIX = {
-      "Maharashtra": { code: "MH", zone: "WEST", central: 3, stateHosp: 12, disp: 220, lat: 19.0760, lng: 72.8777, cities: ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Solapur", "Kolhapur"] },
-      "Karnataka": { code: "KA", zone: "SOUTH", central: 3, stateHosp: 8, disp: 142, lat: 12.9716, lng: 77.5946, cities: ["Bengaluru", "Kalaburagi", "Mysuru", "Hubballi", "Belagavi", "Mangaluru", "Davanagere", "Ballari"] },
-      "Telangana": { code: "TS", zone: "SOUTH", central: 2, stateHosp: 5, disp: 72, lat: 17.3850, lng: 78.4867, cities: ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar", "Khammam", "Ramagundam"] },
-      "Tamil Nadu": { code: "TN", zone: "SOUTH", central: 2, stateHosp: 8, disp: 210, lat: 13.0827, lng: 80.2707, cities: ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirunelveli", "Tiruppur"] },
-      "Delhi": { code: "DL", zone: "NORTH", central: 4, stateHosp: 0, disp: 35, lat: 28.7041, lng: 77.1025, cities: ["Delhi", "New Delhi", "Basaidarapur", "Rohini", "Okhla", "Jhilmil"] },
-      "West Bengal": { code: "WB", zone: "EAST", central: 1, stateHosp: 13, disp: 180, lat: 22.5726, lng: 88.3639, cities: ["Kolkata", "Howrah", "Asansol", "Siliguri", "Durgapur", "Bardhaman"] },
-      "Gujarat": { code: "GJ", zone: "WEST", central: 4, stateHosp: 8, disp: 125, lat: 23.0225, lng: 72.5714, cities: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar"] },
-      "Uttar Pradesh": { code: "UP", zone: "CENTRAL", central: 6, stateHosp: 10, disp: 155, lat: 26.8467, lng: 80.9462, cities: ["Lucknow", "Kanpur", "Noida", "Ghaziabad", "Varanasi", "Agra", "Meerut"] },
-      "Kerala": { code: "KL", zone: "SOUTH", central: 3, stateHosp: 9, disp: 145, lat: 8.5241, lng: 76.9366, cities: ["Thiruvananthapuram", "Kochi", "Kozhikode", "Kollam", "Thrissur", "Alappuzha"] },
-      "Andhra Pradesh": { code: "AP", zone: "SOUTH", central: 1, stateHosp: 4, disp: 82, lat: 16.5062, lng: 80.6480, cities: ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool", "Tirupati"] },
-      "Haryana": { code: "HR", zone: "NORTH", central: 3, stateHosp: 4, disp: 45, lat: 28.4595, lng: 77.0266, cities: ["Gurugram", "Faridabad", "Panipat", "Ambala", "Yamunanagar", "Rohtak"] },
-      "Punjab": { code: "PB", zone: "NORTH", central: 1, stateHosp: 6, disp: 70, lat: 30.9010, lng: 75.8573, cities: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda", "Mohali"] },
-      "Rajasthan": { code: "RJ", zone: "NORTH", central: 4, stateHosp: 4, disp: 75, lat: 26.9124, lng: 75.7873, cities: ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Bhiwadi"] },
-      "Madhya Pradesh": { code: "MP", zone: "CENTRAL", central: 1, stateHosp: 6, disp: 65, lat: 22.7196, lng: 75.8577, cities: ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain", "Sagar"] },
-      "Odisha": { code: "OD", zone: "EAST", central: 2, stateHosp: 6, disp: 50, lat: 20.2961, lng: 85.8245, cities: ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur", "Sambalpur"] },
-      "Bihar": { code: "BR", zone: "EAST", central: 2, stateHosp: 2, disp: 30, lat: 25.5941, lng: 85.1376, cities: ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia"] },
-      "Jharkhand": { code: "JH", zone: "EAST", central: 2, stateHosp: 1, disp: 40, lat: 23.3441, lng: 85.3096, cities: ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Deoghar"] },
-      "Chhattisgarh": { code: "CG", zone: "CENTRAL", central: 4, stateHosp: 0, disp: 25, lat: 21.2514, lng: 81.6296, cities: ["Raipur", "Bhilai", "Bilaspur", "Korba", "Rajnandgaon"] },
-      "Assam": { code: "AS", zone: "NORTH_EAST", central: 2, stateHosp: 0, disp: 28, lat: 26.1445, lng: 91.7362, cities: ["Guwahati", "Silchar", "Dibrugarh", "Jorhat", "Nagaon"] },
-      "Himachal Pradesh": { code: "HP", zone: "NORTH", central: 1, stateHosp: 1, disp: 15, lat: 31.1048, lng: 77.1734, cities: ["Shimla", "Baddi", "Solan", "Dharamshala", "Mandi"] },
-      "Uttarakhand": { code: "UK", zone: "NORTH", central: 1, stateHosp: 0, disp: 18, lat: 30.3165, lng: 78.0322, cities: ["Dehradun", "Haridwar", "Rudrapur", "Haldwani", "Roorkee"] },
-      "Goa": { code: "GA", zone: "WEST", central: 0, stateHosp: 1, disp: 10, lat: 15.2993, lng: 74.1240, cities: ["Panaji", "Margao", "Vasco da Gama", "Mapusa"] },
-      "Jammu and Kashmir": { code: "JK", zone: "NORTH", central: 1, stateHosp: 0, disp: 8, lat: 32.7266, lng: 74.8570, cities: ["Jammu", "Srinagar", "Bari Brahmana", "Kathua"] },
+      "Karnataka": { code: "KA", zone: "SOUTH", central: 3, stateHosp: 8, disp: 142, lat: 17.3297, lng: 76.8343, cities: ["Kalaburagi", "Bengaluru", "Mysuru", "Hubballi", "Belagavi", "Mangaluru", "Ballari", "Bidar", "Raichur", "Koppal", "Yadgir"] },
+      "Telangana": { code: "TS", zone: "SOUTH", central: 2, stateHosp: 5, disp: 72, lat: 17.3850, lng: 78.4867, cities: ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar", "Mahbubnagar", "Khammam"] },
+      "Maharashtra": { code: "MH", zone: "WEST", central: 3, stateHosp: 12, disp: 220, lat: 19.0760, lng: 72.8777, cities: ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Solapur", "Kolhapur", "Latur", "Nanded"] },
+      "Tamil Nadu": { code: "TN", zone: "SOUTH", central: 2, stateHosp: 8, disp: 210, lat: 13.0827, lng: 80.2707, cities: ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tiruppur"] },
+      "Delhi": { code: "DL", zone: "NORTH", central: 4, stateHosp: 0, disp: 35, lat: 28.7041, lng: 77.1025, cities: ["Delhi", "New Delhi", "Basaidarapur", "Rohini", "Okhla"] },
+      "West Bengal": { code: "WB", zone: "EAST", central: 1, stateHosp: 13, disp: 180, lat: 22.5726, lng: 88.3639, cities: ["Kolkata", "Howrah", "Asansol", "Siliguri", "Durgapur"] },
+      "Gujarat": { code: "GJ", zone: "WEST", central: 4, stateHosp: 8, disp: 125, lat: 23.0225, lng: 72.5714, cities: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar"] },
+      "Uttar Pradesh": { code: "UP", zone: "CENTRAL", central: 6, stateHosp: 10, disp: 155, lat: 26.8467, lng: 80.9462, cities: ["Lucknow", "Kanpur", "Noida", "Ghaziabad", "Varanasi", "Agra"] },
+      "Kerala": { code: "KL", zone: "SOUTH", central: 3, stateHosp: 9, disp: 145, lat: 8.5241, lng: 76.9366, cities: ["Thiruvananthapuram", "Kochi", "Kozhikode", "Kollam", "Thrissur"] },
+      "Andhra Pradesh": { code: "AP", zone: "SOUTH", central: 1, stateHosp: 4, disp: 82, lat: 16.5062, lng: 80.6480, cities: ["Visakhapatnam", "Vijayawada", "Guntur", "Kurnool", "Tirupati"] },
+      "Haryana": { code: "HR", zone: "NORTH", central: 3, stateHosp: 4, disp: 45, lat: 28.4595, lng: 77.0266, cities: ["Gurugram", "Faridabad", "Panipat", "Ambala", "Rohtak"] },
+      "Punjab": { code: "PB", zone: "NORTH", central: 1, stateHosp: 6, disp: 70, lat: 30.9010, lng: 75.8573, cities: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala"] },
+      "Rajasthan": { code: "RJ", zone: "NORTH", central: 4, stateHosp: 4, disp: 75, lat: 26.9124, lng: 75.7873, cities: ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer"] },
+      "Madhya Pradesh": { code: "MP", zone: "CENTRAL", central: 1, stateHosp: 6, disp: 65, lat: 22.7196, lng: 75.8577, cities: ["Indore", "Bhopal", "Jabalpur", "Gwalior"] },
+      "Odisha": { code: "OD", zone: "EAST", central: 2, stateHosp: 6, disp: 50, lat: 20.2961, lng: 85.8245, cities: ["Bhubaneswar", "Cuttack", "Rourkela"] },
+      "Bihar": { code: "BR", zone: "EAST", central: 2, stateHosp: 2, disp: 30, lat: 25.5941, lng: 85.1376, cities: ["Patna", "Gaya", "Bhagalpur"] },
+      "Jharkhand": { code: "JH", zone: "EAST", central: 2, stateHosp: 1, disp: 40, lat: 23.3441, lng: 85.3096, cities: ["Ranchi", "Jamshedpur", "Dhanbad"] },
+      "Chhattisgarh": { code: "CG", zone: "CENTRAL", central: 4, stateHosp: 0, disp: 25, lat: 21.2514, lng: 81.6296, cities: ["Raipur", "Bhilai", "Bilaspur"] },
+      "Assam": { code: "AS", zone: "NORTH_EAST", central: 2, stateHosp: 0, disp: 28, lat: 26.1445, lng: 91.7362, cities: ["Guwahati", "Silchar", "Dibrugarh"] },
+      "Himachal Pradesh": { code: "HP", zone: "NORTH", central: 1, stateHosp: 1, disp: 15, lat: 31.1048, lng: 77.1734, cities: ["Shimla", "Baddi", "Solan"] },
+      "Uttarakhand": { code: "UK", zone: "NORTH", central: 1, stateHosp: 0, disp: 18, lat: 30.3165, lng: 78.0322, cities: ["Dehradun", "Haridwar", "Haldwani"] },
+      "Goa": { code: "GA", zone: "WEST", central: 0, stateHosp: 1, disp: 10, lat: 15.2993, lng: 74.1240, cities: ["Panaji", "Margao", "Vasco da Gama"] },
+      "Jammu and Kashmir": { code: "JK", zone: "NORTH", central: 1, stateHosp: 0, disp: 8, lat: 32.7266, lng: 74.8570, cities: ["Jammu", "Srinagar"] },
       "Chandigarh": { code: "CH", zone: "NORTH", central: 1, stateHosp: 0, disp: 5, lat: 30.7333, lng: 76.7794, cities: ["Chandigarh"] },
-      "Puducherry": { code: "PY", zone: "SOUTH", central: 0, stateHosp: 1, disp: 14, lat: 11.9416, lng: 79.8083, cities: ["Puducherry", "Karaikal"] },
-      "Meghalaya": { code: "ML", zone: "NORTH_EAST", central: 0, stateHosp: 0, disp: 3, lat: 25.5788, lng: 91.8933, cities: ["Shillong", "Byrnihat"] },
+      "Puducherry": { code: "PY", zone: "SOUTH", central: 0, stateHosp: 1, disp: 14, lat: 11.9416, lng: 79.8083, cities: ["Puducherry"] },
+      "Meghalaya": { code: "ML", zone: "NORTH_EAST", central: 0, stateHosp: 0, disp: 3, lat: 25.5788, lng: 91.8933, cities: ["Shillong"] },
       "Tripura": { code: "TR", zone: "NORTH_EAST", central: 0, stateHosp: 0, disp: 2, lat: 23.8315, lng: 91.2868, cities: ["Agartala"] }
     };
 
@@ -124,7 +151,7 @@
           const city = cities[(i - 1) % cities.length];
           list.push({
             id: `ESIC-${meta.code}-${i}`,
-            name: i === 1 ? `ESIC Medical College & Hospital, ${city}` : `ESIC Model Hospital, ${city}`,
+            name: i === 1 ? `ESIC Medical College & PGIMSR, ${city}` : `ESIC Model Hospital, ${city}`,
             city: city,
             state: state,
             lat: +(meta.lat + (i * 0.012)).toFixed(4),
@@ -201,18 +228,12 @@
       const countLabel = document.getElementById('results-count');
       listContainer.innerHTML = '';
 
-      countLabel.textContent = `Showing ${list.length.toLocaleString()} facilities`;
-
-      if (list.length === 0) {
-        listContainer.innerHTML = `
-          <div class="p-8 text-center bg-white rounded-xl border border-slate-200">
-            <p class="text-sm font-semibold text-slate-700">No facilities found for this location.</p>
-          </div>`;
-        return;
-      }
+      countLabel.textContent = currentAnchorPoint 
+        ? `Showing closest facilities to ${currentAnchorPoint.name}`
+        : `Showing ${list.length.toLocaleString()} facilities across India`;
 
       // 1. Draw points on the map
-      const mapLimit = Math.min(list.length, 100);
+      const mapLimit = Math.min(list.length, 80);
       for (let i = 0; i < mapLimit; i++) {
         const f = list[i];
         const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
@@ -232,7 +253,7 @@
             <div class="text-slate-600 mb-1">${f.city}, ${f.state}</div>
             <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[9px] font-semibold">${f.tier}</span>
             ${distBadge}
-            <a href="${gmapsUrl}" target="_blank" rel="noopener" class="mt-2 block text-center py-1 px-2 bg-blue-600 text-white rounded text-[10px] font-medium">
+            <a href="${gmapsUrl}" target="_blank" rel="noopener" class="mt-2 block text-center py-1.5 px-2 bg-blue-600 text-white rounded text-[10px] font-medium">
               🚗 Navigate in Google Maps
             </a>
           </div>
@@ -240,14 +261,16 @@
         markersLayer.addLayer(circle);
       }
 
-      // 2. Render Cards (First 40 items)
-      const cardLimit = Math.min(list.length, 40);
+      // 2. Render Cards (First 35 items)
+      const cardLimit = Math.min(list.length, 35);
       const frag = document.createDocumentFragment();
 
       for (let i = 0; i < cardLimit; i++) {
         const f = list[i];
         const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
-        const distBadge = f.distanceKm !== undefined ? `<span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">${f.distanceKm} km</span>` : '';
+        const distBadge = f.distanceKm !== undefined 
+          ? `<span class="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">📍 ${f.distanceKm} km</span>`
+          : '';
 
         const card = document.createElement('div');
         card.className = "p-3.5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-2.5";
@@ -257,8 +280,8 @@
               <h2 class="text-xs font-bold text-slate-800 leading-snug cursor-pointer hover:text-emerald-600">${f.name}</h2>
               <p class="text-[11px] text-slate-500 mt-0.5">${f.city}, ${f.state}</p>
             </div>
-            <div class="flex flex-col items-end gap-1">
-              <span class="text-[10px] font-mono px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200 shrink-0 font-semibold">${f.tier}</span>
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              <span class="text-[10px] font-mono px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200 font-semibold">${f.tier}</span>
               ${distBadge}
             </div>
           </div>
@@ -278,13 +301,14 @@
       listContainer.appendChild(frag);
     }
 
-    // Set Location Anchor and Rank Facilities by Distance
+    // Set Anchor Location and Sort ALWAYS by Proximity
     function setLocationAnchor(lat, lng, label) {
-      currentAnchorPoint = { lat, lng };
+      currentAnchorPoint = { lat, lng, name: label };
 
       const badge = document.getElementById('active-anchor-badge');
       badge.textContent = `📍 Nearest to: ${label}`;
       badge.classList.remove('hidden');
+      document.getElementById('clear-btn').classList.remove('hidden');
 
       if (searchPin) map.removeLayer(searchPin);
       searchPin = L.marker([lat, lng], {
@@ -298,7 +322,7 @@
 
       map.flyTo([lat, lng], 10, { duration: 0.8 });
 
-      // Calculate distances for all facilities and sort by closest
+      // Calculate distance to all facilities and rank closest first
       let ranked = allFacilities.map(f => ({
         ...f,
         distanceKm: calculateDistance(lat, lng, f.lat, f.lng)
@@ -308,103 +332,71 @@
       render(ranked);
     }
 
-    // Autocomplete predictions from Photon API (covers every village, street, town in India)
-    async function fetchPredictions(query) {
+    // Geocode Location on Demand
+    async function executeSearch(query) {
+      const q = query.trim();
+      if (!q) return;
+
+      const normalized = q.toLowerCase();
+
+      // 1. Check local cache first
+      if (LOCAL_GEO_CACHE[normalized]) {
+        const hit = LOCAL_GEO_CACHE[normalized];
+        setLocationAnchor(hit.lat, hit.lng, hit.name);
+        return;
+      }
+
+      // 2. Query OSM / Nominatim for ANY location across India
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&limit=1&q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          const name = data[0].display_name.split(',')[0];
+          setLocationAnchor(lat, lng, name);
+          return;
+        }
+      } catch (e) {}
+
+      // 3. Fallback: string matching if geocoding is unavailable
+      const filtered = allFacilities.filter(f => 
+        f.city.toLowerCase().includes(normalized) || 
+        f.state.toLowerCase().includes(normalized) || 
+        f.name.toLowerCase().includes(normalized)
+      );
+
+      if (filtered.length > 0) {
+        setLocationAnchor(filtered[0].lat, filtered[0].lng, filtered[0].city);
+      } else {
+        render(allFacilities);
+      }
+    }
+
+    // Auto-complete suggestions
+    async function fetchSuggestions(query) {
       const box = document.getElementById('suggestions-box');
       if (!query || query.length < 2) {
         box.classList.add('hidden');
-        box.innerHTML = '';
         return;
       }
 
       try {
-        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=6&lat=20.5937&lon=78.9629`);
+        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lat=20.5937&lon=78.9629`);
         const data = await res.json();
 
         if (data.features && data.features.length > 0) {
           box.innerHTML = '';
           data.features.forEach(f => {
             const props = f.properties;
-            const name = props.name || '';
-            const city = props.city || props.district || props.county || '';
-            const state = props.state || '';
-            const coords = f.geometry.coordinates; // [lng, lat]
-
-            const title = name;
-            const subtitle = [city, state, props.country].filter(Boolean).join(', ');
+            const title = props.name || '';
+            const subtitle = [props.city || props.district, props.state].filter(Boolean).join(', ');
+            const coords = f.geometry.coordinates;
 
             const item = document.createElement('div');
-            item.className = "p-2.5 hover:bg-slate-50 cursor-pointer flex items-center space-x-2 transition text-xs";
+            item.className = "p-2.5 hover:bg-slate-50 cursor-pointer flex items-center space-x-2 text-xs";
             item.innerHTML = `
               <span class="text-slate-400">📍</span>
               <div class="flex-1 truncate">
                 <span class="font-semibold text-slate-800">${title}</span>
-                <span class="text-slate-500 text-[11px] block truncate">${subtitle}</span>
-              </div>
-            `;
-
-            item.addEventListener('click', () => {
-              document.getElementById('location-input').value = title;
-              box.classList.add('hidden');
-              setLocationAnchor(coords[1], coords[0], title);
-            });
-
-            box.appendChild(item);
-          });
-          box.classList.remove('hidden');
-        } else {
-          box.classList.add('hidden');
-        }
-      } catch (e) {
-        box.classList.add('hidden');
-      }
-    }
-
-    document.getElementById('location-input').addEventListener('input', (e) => {
-      const q = e.target.value.trim();
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        fetchPredictions(q);
-      }, 250);
-    });
-
-    document.getElementById('clear-btn').addEventListener('click', () => {
-      document.getElementById('location-input').value = '';
-      document.getElementById('suggestions-box').classList.add('hidden');
-      document.getElementById('active-anchor-badge').classList.add('hidden');
-      currentAnchorPoint = null;
-      if (searchPin) map.removeLayer(searchPin);
-      map.setView([20.5937, 78.9629], 5);
-      render(allFacilities);
-    });
-
-    // Close autocomplete when tapping outside
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('#location-input') && !e.target.closest('#suggestions-box')) {
-        document.getElementById('suggestions-box').classList.add('hidden');
-      }
-    });
-
-    // GPS Handler
-    document.getElementById('gps-btn').addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        alert("GPS not supported.");
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          setLocationAnchor(pos.coords.latitude, pos.coords.longitude, "Your GPS Location");
-        },
-        () => alert("GPS access denied or unavailable."),
-        { enableHighAccuracy: false, timeout: 5000 }
-      );
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-      initMap();
-      allFacilities = generateFacilities();
-      render(allFacilities);
-    });
-  </script>
-</body>
-</html>
+                <span class="t
